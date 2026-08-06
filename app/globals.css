@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --brand-esmeralda: #0B2E1E;
+  --brand-esmeralda-fundo: #071A11;
+  --brand-jade: #A9C64C;
+  --brand-ouro: #C9A227;
+  --brand-ouro-claro: #E8C766;
+  --brand-creme: #F3EAD3;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-esmeralda: var(--brand-esmeralda);
+  --color-esmeralda-fundo: var(--brand-esmeralda-fundo);
+  --color-jade: var(--brand-jade);
+  --color-ouro: var(--brand-ouro);
+  --color-ouro-claro: var(--brand-ouro-claro);
+  --color-creme: var(--brand-creme);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--brand-esmeralda-fundo);
+  color: var(--brand-creme);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Foco visível e consistente em toda navegação por teclado. */
+:focus-visible {
+  outline: 2px solid var(--brand-ouro-claro);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
