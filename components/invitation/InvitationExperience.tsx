@@ -7,6 +7,12 @@ import { PosterHero } from '@/components/invitation/PosterHero'
 
 const SEEN_KEY = 'convite:abertura-vista'
 
+// Fonte da verdade em memória: sobrevive à navegação client-side (voltar ao
+// menu e entrar em outra seção) mesmo quando o sessionStorage está bloqueado
+// (webview com privacidade restrita). Só perde o valor num recarregamento
+// completo da página — aí sim a abertura reaparece, o que é aceitável.
+let seenThisSession = false
+
 type InvitationExperienceProps = {
   monogram: string
   celebrantName: string
@@ -34,6 +40,7 @@ export function InvitationExperience({
   const [showOpening, setShowOpening] = useState(false)
 
   useEffect(() => {
+    if (seenThisSession) return
     try {
       // sessionStorage só existe no cliente — ler no corpo do componente
       // quebraria a hidratação. Isto é sincronização com um sistema externo
@@ -42,18 +49,22 @@ export function InvitationExperience({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (sessionStorage.getItem(SEEN_KEY) !== '1') setShowOpening(true)
     } catch {
-      // Armazenamento indisponível (privacidade restrita, webview embutida).
-      // Degradar para "primeira visita" é melhor que travar numa tela vazia.
+      // Armazenamento indisponível: sem como confirmar "já visto", então
+      // mostramos a abertura. A flag em memória evita repeti-la a cada volta
+      // ao menu dentro desta mesma sessão.
       setShowOpening(true)
     }
   }, [])
 
   function handleFinish() {
+    seenThisSession = true
     try {
       sessionStorage.setItem(SEEN_KEY, '1')
     } catch {
-      // Sem persistência a abertura repete no próximo carregamento — aceitável.
-      // O que não pode é impedir o convidado de entrar.
+      // Sem persistência, a flag em memória ainda garante que a abertura não
+      // repita enquanto o convidado navegar entre as seções. Ela só volta a
+      // aparecer se a página for recarregada de verdade — comportamento
+      // aceitável, o que não pode é travar o convidado numa tela vazia.
     }
     setShowOpening(false)
     mainRef.current?.focus()
