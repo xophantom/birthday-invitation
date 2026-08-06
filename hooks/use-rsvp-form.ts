@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { createRsvp } from '@/app/(site)/confirmar/actions'
-import { rsvpFormSchema, type RsvpFormValues } from '@/lib/validation/rsvp'
+import { RSVP_SUBMIT_ERROR_MESSAGE, rsvpFormSchema, type RsvpFormValues } from '@/lib/validation/rsvp'
 
 export function useRsvpForm() {
   const [submitted, setSubmitted] = useState(false)
@@ -27,15 +27,17 @@ export function useRsvpForm() {
     try {
       result = await createRsvp(values)
     } catch (error) {
-      // A própria Server Action já captura falhas de gravação (Task 4). Este
-      // catch cobre o que sobra: a chamada nem chegou a rodar o corpo da
-      // action — por exemplo, DATABASE_URL ausente derruba o módulo do banco
-      // no carregamento, antes do try/catch interno existir. Sem isto, o
-      // React Hook Form relança o erro depois de zerar `isSubmitting`
-      // (silenciosamente, sem mexer no estado do formulário) e o convidado
-      // fica sem nenhum retorno visual de que a confirmação não foi salva.
+      // A própria Server Action já captura falhas de gravação (Task 4) e o
+      // erro de banco (DATABASE_URL ausente etc.) só surge dentro daquele
+      // try/catch, já que a criação do cliente é preguiçosa (lib/db/index.ts).
+      // Este catch é defesa em profundidade para o que sobrar: falha de rede
+      // ao chamar a Server Action, erro inesperado antes dela retornar, etc.
+      // Sem isto, o React Hook Form relança o erro depois de zerar
+      // `isSubmitting` (silenciosamente, sem mexer no estado do formulário) e
+      // o convidado fica sem nenhum retorno visual de que a confirmação não
+      // foi salva.
       console.error('Falha ao chamar createRsvp:', error)
-      setServerError('Não conseguimos registrar sua confirmação. Tente novamente em instantes.')
+      setServerError(RSVP_SUBMIT_ERROR_MESSAGE)
       return
     }
 

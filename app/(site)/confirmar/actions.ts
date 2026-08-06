@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createRsvpRecord } from '@/lib/db/queries/rsvp'
-import { rsvpFormSchema, type RsvpFormValues } from '@/lib/validation/rsvp'
+import { RSVP_SUBMIT_ERROR_MESSAGE, rsvpFormSchema, type RsvpFormValues } from '@/lib/validation/rsvp'
 
 export type RsvpActionResult =
   | { ok: true }
@@ -30,7 +30,7 @@ export async function createRsvp(values: unknown): Promise<RsvpActionResult> {
     console.error('Falha ao gravar RSVP:', error)
     return {
       ok: false,
-      message: 'Não conseguimos registrar sua confirmação. Tente novamente em instantes.',
+      message: RSVP_SUBMIT_ERROR_MESSAGE,
     }
   }
 

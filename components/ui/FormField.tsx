@@ -10,11 +10,15 @@ type FormFieldProps = {
 }
 
 /**
- * Contrato de acessibilidade para quem passa o input em `children`: ele deve
- * receber `aria-describedby={error ? errorId : hintId}` e
- * `aria-invalid={!!error}`, onde `errorId` é `${htmlFor}-error` e `hintId`
- * é `${htmlFor}-hint` — os mesmos ids que este componente usa nos `<p>` de
- * hint e erro.
+ * Contrato de acessibilidade para quem passa o input em `children`: hint e
+ * erro são renderizados de forma independente e podem coexistir na tela —
+ * não é uma escolha exclusiva entre um e outro. Por isso `aria-describedby`
+ * deve referenciar os dois ids quando ambos estiverem presentes (por
+ * exemplo `"${htmlFor}-hint ${htmlFor}-error"`, separados por espaço), e só
+ * o(s) que existirem quando houver apenas um. `errorId` é `${htmlFor}-error`
+ * e `hintId` é `${htmlFor}-hint` — os mesmos ids que este componente usa nos
+ * `<p>` de hint e erro. Quem consome também deve passar
+ * `aria-invalid={!!error}` no input.
  */
 export function FormField({
   label,
