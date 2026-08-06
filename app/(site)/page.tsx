@@ -1,10 +1,18 @@
+import { InvitationExperience } from '@/components/invitation/InvitationExperience'
+import { getEventConfig } from '@/lib/config'
+import { formatEventDate } from '@/lib/date'
+
 export default function Page() {
+  const config = getEventConfig()
+  const date = formatEventDate(config.event.startsAt, config.event.timeZone)
+
   return (
-    <main className="flex flex-1 items-center justify-center bg-surface">
-      <div className="rounded-lg border border-accent/40 p-8 text-center">
-        <p className="font-display text-4xl text-accent-light">Alice</p>
-        <p className="mt-2 font-sans text-foreground">11 de dezembro de 2026</p>
-      </div>
-    </main>
+    <InvitationExperience
+      monogram={config.celebrant.monogram}
+      celebrantName={config.celebrant.name}
+      poster={config.theme.poster}
+      videoSrc={config.media.openingVideo}
+      date={date}
+    />
   )
 }
