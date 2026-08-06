@@ -3,11 +3,15 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createRsvpRecord } from '@/lib/db/queries/rsvp'
-import { rsvpFormSchema } from '@/lib/validation/rsvp'
+import { rsvpFormSchema, type RsvpFormValues } from '@/lib/validation/rsvp'
 
 export type RsvpActionResult =
   | { ok: true }
-  | { ok: false; message: string; fieldErrors?: Record<string, string[]> }
+  | {
+      ok: false
+      message: string
+      fieldErrors?: Partial<Record<keyof RsvpFormValues, string[]>>
+    }
 
 export async function createRsvp(values: unknown): Promise<RsvpActionResult> {
   const parsed = rsvpFormSchema.safeParse(values)
@@ -16,7 +20,7 @@ export async function createRsvp(values: unknown): Promise<RsvpActionResult> {
     return {
       ok: false,
       message: 'Confira os campos destacados.',
-      fieldErrors: z.flattenError(parsed.error).fieldErrors as Record<string, string[]>,
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
     }
   }
 
