@@ -14,7 +14,7 @@ Valem para **todas** as tarefas (repetidos da Fase 1 — o executor pode estar l
 
 - **Sem TDD.** Nenhum teste automatizado nesta fase. Verificação por `tsc --noEmit`, `npm run lint`, `npm run build` e inspeção visual no navegador.
 - **Nenhum componente importa `config/event.config.ts` diretamente.** Sempre `getEventConfig()` de `lib/config.ts`, ou props vindas de um Server Component.
-- **Cores de marca sempre em token** (`bg-esmeralda`, `text-ouro`, `text-creme`, `text-erro`). Hex apenas em `app/globals.css` e `config/event.config.ts`. Exceção: preto puro para sombra e escurecimento (`shadow-black/30`, `backdrop:bg-black/80`) é profundidade, não cor de marca.
+- **Cores de marca sempre em token** (`bg-surface`, `text-accent`, `text-foreground`, `text-danger`). Hex apenas em `app/globals.css` e `config/event.config.ts`. Exceção: preto puro para sombra e escurecimento (`shadow-black/30`, `backdrop:bg-black/80`) é profundidade, não cor de marca.
 - **Tailwind v4:** sem `tailwind.config.js`; tokens em `@theme inline` no `app/globals.css`.
 - **Next.js 16:** `params`/`searchParams` são Promises; `cookies()` é assíncrono.
 - **Todo texto de interface em pt-BR**, com acentuação correta.
@@ -144,7 +144,7 @@ export function MusicPlayer({ src }: { src: string }) {
           type="button"
           onClick={toggleMute}
           aria-label={isMuted ? 'Ativar música' : 'Desativar música'}
-          className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-ouro/40 bg-esmeralda/80 text-ouro-claro backdrop-blur-sm transition-colors hover:bg-esmeralda"
+          className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-surface/80 text-accent-light backdrop-blur-sm transition-colors hover:bg-surface"
         >
           {isMuted ? '🔇' : '🎵'}
         </button>
@@ -167,7 +167,7 @@ export default function SiteLayout({ children }: LayoutProps<'/'>) {
   const { media } = getEventConfig()
 
   return (
-    <div className="relative flex min-h-dvh flex-col bg-esmeralda-fundo">
+    <div className="relative flex min-h-dvh flex-col bg-surface-deep">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.65)_100%)]"
@@ -222,7 +222,7 @@ export function GoldParticles({ count = 28 }: { count?: number }) {
         return (
           <span
             key={index}
-            className="absolute rounded-full bg-ouro-claro motion-safe:animate-pulse"
+            className="absolute rounded-full bg-accent-light motion-safe:animate-pulse"
             style={{
               left: `${left}%`,
               top: `${top}%`,
@@ -311,7 +311,7 @@ export function OpeningSequence({
   }
 
   return (
-    <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-esmeralda-fundo px-6">
+    <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-surface-deep px-6">
       {videoSrc ? (
         <video
           src={videoSrc}
@@ -340,7 +340,7 @@ export function OpeningSequence({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 1 }}
-          className="font-display text-7xl text-ouro-claro drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
+          className="font-display text-7xl text-accent-light drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
         >
           {monogram}
         </motion.p>
@@ -349,7 +349,7 @@ export function OpeningSequence({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.8, duration: 1 }}
-          className="font-display text-2xl tracking-[0.3em] text-creme uppercase"
+          className="font-display text-2xl tracking-[0.3em] text-foreground uppercase"
         >
           {celebrantName}
         </motion.p>
@@ -366,7 +366,7 @@ export function OpeningSequence({
       <button
         type="button"
         onClick={handleOpen}
-        className="absolute bottom-6 right-6 text-xs text-creme/60 underline underline-offset-4 hover:text-creme"
+        className="absolute bottom-6 right-6 text-xs text-foreground/60 underline underline-offset-4 hover:text-foreground"
       >
         Pular
       </button>
@@ -404,7 +404,7 @@ git commit -m "feat: adiciona sequencia de abertura com slot de video"
 
 Duas decisões visuais que vêm do formato da arte (693×895, retrato):
 
-1. **Mobile ocupa a tela; desktop vira cartão.** Esticar 693px em tela larga pixelaria. O entorno recebe esmeralda, e a arte fica emoldurada em proporção de convite.
+1. **Mobile ocupa a tela; desktop vira cartão.** Esticar 693px em tela larga pixelaria. O entorno recebe o verde esmeralda (token `surface-deep`), e a arte fica emoldurada em proporção de convite.
 2. **A data vai sobre um gradiente que sobe da base**, não direto sobre a arte. A parte inferior da imagem é o vestido claro, onde texto dourado desapareceria. O gradiente garante contraste independente do que esteja atrás.
 
 O nome não se repete em texto: a arte já traz "alice fernandes" no banner.
@@ -428,7 +428,7 @@ type PosterHeroProps = {
 export function PosterHero({ poster, celebrantName, date }: PosterHeroProps) {
   return (
     <section className="flex flex-1 items-center justify-center px-0 py-0 sm:px-6 sm:py-10">
-      <div className="relative aspect-[693/895] w-full max-w-none overflow-hidden sm:max-w-md sm:rounded-3xl sm:border sm:border-ouro/30 sm:shadow-2xl sm:shadow-black/50">
+      <div className="relative aspect-[693/895] w-full max-w-none overflow-hidden sm:max-w-md sm:rounded-3xl sm:border sm:border-accent/30 sm:shadow-2xl sm:shadow-black/50">
         <Image
           src={poster}
           alt={`Convite de 15 anos de ${celebrantName}`}
@@ -441,17 +441,17 @@ export function PosterHero({ poster, celebrantName, date }: PosterHeroProps) {
         {/* Gradiente que garante leitura da data sobre qualquer parte da arte. */}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-esmeralda-fundo via-esmeralda-fundo/85 to-transparent"
+          className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-surface-deep via-surface-deep/85 to-transparent"
         />
 
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-6 pb-8 text-center">
-          <p className="font-sans text-xs uppercase tracking-[0.35em] text-ouro">
+          <p className="font-sans text-xs uppercase tracking-[0.35em] text-accent">
             {date.weekday}
           </p>
-          <p className="font-display text-4xl text-ouro-claro">
+          <p className="font-display text-4xl text-accent-light">
             {date.day} de {date.month} de {date.year}
           </p>
-          <p className="font-sans text-sm tracking-widest text-creme">
+          <p className="font-sans text-sm tracking-widest text-foreground">
             às {date.time}
           </p>
         </div>
@@ -523,9 +523,9 @@ export function MenuGrid() {
           >
             <Link
               href={item.href}
-              className="flex min-h-14 items-center gap-4 rounded-full border border-ouro/30 bg-esmeralda/60 px-6 text-creme transition-colors hover:border-ouro hover:bg-esmeralda"
+              className="flex min-h-14 items-center gap-4 rounded-full border border-accent/30 bg-surface/60 px-6 text-foreground transition-colors hover:border-accent hover:bg-surface"
             >
-              <span aria-hidden className="text-ouro">
+              <span aria-hidden className="text-accent">
                 {item.icon}
               </span>
               <span className="font-sans text-sm tracking-wide">{item.label}</span>
@@ -587,7 +587,7 @@ export function InvitationExperience({
   }
 
   if (showOpening === undefined) {
-    return <div className="min-h-dvh bg-esmeralda-fundo" />
+    return <div className="min-h-dvh bg-surface-deep" />
   }
 
   if (showOpening) {
@@ -692,8 +692,8 @@ export default function Page() {
     >
       <ul className="flex flex-col gap-4">
         {guide.map((item) => (
-          <li key={item} className="flex items-start gap-3 text-creme/90">
-            <span aria-hidden className="mt-1 text-ouro">
+          <li key={item} className="flex items-start gap-3 text-foreground/90">
+            <span aria-hidden className="mt-1 text-accent">
               ✦
             </span>
             <span>{item}</span>
@@ -737,8 +737,8 @@ export default function Page() {
             <dl className="flex flex-col gap-3">
               {sizes.map((size) => (
                 <div key={size.label} className="flex justify-between gap-4">
-                  <dt className="text-creme/70">{size.label}</dt>
-                  <dd className="font-display text-xl text-ouro-claro">{size.value}</dd>
+                  <dt className="text-foreground/70">{size.label}</dt>
+                  <dd className="font-display text-xl text-accent-light">{size.value}</dd>
                 </div>
               ))}
             </dl>
@@ -747,11 +747,11 @@ export default function Page() {
 
         {gifts.preferences.length > 0 && (
           <Card>
-            <h2 className="font-display text-2xl text-ouro-claro">Preferências</h2>
+            <h2 className="font-display text-2xl text-accent-light">Preferências</h2>
             <ul className="mt-3 flex flex-col gap-2">
               {gifts.preferences.map((preference) => (
-                <li key={preference} className="flex items-start gap-3 text-creme/90">
-                  <span aria-hidden className="mt-1 text-ouro">
+                <li key={preference} className="flex items-start gap-3 text-foreground/90">
+                  <span aria-hidden className="mt-1 text-accent">
                     ❧
                   </span>
                   <span>{preference}</span>
@@ -763,9 +763,9 @@ export default function Page() {
 
         {gifts.pixKey && (
           <Card>
-            <h2 className="font-display text-2xl text-ouro-claro">Vale-presente via Pix</h2>
-            <p className="mt-2 text-sm text-creme/70">Chave Pix</p>
-            <p className="mt-1 font-mono text-lg break-all text-creme">{gifts.pixKey}</p>
+            <h2 className="font-display text-2xl text-accent-light">Vale-presente via Pix</h2>
+            <p className="mt-2 text-sm text-foreground/70">Chave Pix</p>
+            <p className="mt-1 font-mono text-lg break-all text-foreground">{gifts.pixKey}</p>
           </Card>
         )}
       </div>
@@ -791,18 +791,18 @@ export default function Page() {
   return (
     <SectionShell title="Dress code" subtitle="Um pedido pequeno, com um motivo bonito.">
       <Card>
-        <h2 className="font-display text-2xl text-ouro-claro">Cores a evitar</h2>
+        <h2 className="font-display text-2xl text-accent-light">Cores a evitar</h2>
         <ul className="mt-4 flex flex-wrap gap-2">
           {dressCode.avoid.map((color) => (
             <li
               key={color}
-              className="rounded-full border border-jade/60 px-4 py-2 text-sm text-jade"
+              className="rounded-full border border-highlight/60 px-4 py-2 text-sm text-highlight"
             >
               {color}
             </li>
           ))}
         </ul>
-        <p className="mt-6 text-creme/85">{dressCode.reason}</p>
+        <p className="mt-6 text-foreground/85">{dressCode.reason}</p>
       </Card>
     </SectionShell>
   )
@@ -830,15 +830,15 @@ export default function Page() {
     <SectionShell title="Local" subtitle={venue.name}>
       <div className="flex flex-col gap-5">
         <Card>
-          <p className="text-creme/90">{venue.address}</p>
+          <p className="text-foreground/90">{venue.address}</p>
           {venue.notes.map((note) => (
-            <p key={note} className="mt-3 text-sm text-creme/70">
+            <p key={note} className="mt-3 text-sm text-foreground/70">
               {note}
             </p>
           ))}
         </Card>
 
-        <div className="overflow-hidden rounded-2xl border border-ouro/25">
+        <div className="overflow-hidden rounded-2xl border border-accent/25">
           <iframe
             title={`Mapa de ${venue.name}`}
             src={`https://www.google.com/maps?q=${query}&output=embed`}
@@ -853,7 +853,7 @@ export default function Page() {
             href={`https://www.google.com/maps/search/?api=1&query=${query}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-ouro px-6 text-sm font-medium text-esmeralda-fundo transition-colors hover:bg-ouro-claro"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-accent px-6 text-sm font-medium text-surface-deep transition-colors hover:bg-accent-light"
           >
             Abrir no Google Maps
           </a>
@@ -861,7 +861,7 @@ export default function Page() {
             href={`https://waze.com/ul?q=${query}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-ouro/50 px-6 text-sm text-ouro-claro transition-colors hover:bg-ouro/10"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-accent/50 px-6 text-sm text-accent-light transition-colors hover:bg-accent/10"
           >
             Abrir no Waze
           </a>
@@ -889,7 +889,7 @@ export default function Page() {
       title="Confirmar presença"
       subtitle="O formulário de confirmação estará disponível em instantes."
     >
-      <p className="text-center text-creme/70">
+      <p className="text-center text-foreground/70">
         Estamos preparando esta parte do convite.
       </p>
     </SectionShell>

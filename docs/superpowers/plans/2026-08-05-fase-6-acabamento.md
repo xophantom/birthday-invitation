@@ -85,10 +85,10 @@ export default function Error({
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
       <Ornament placement="top" />
-      <h1 className="font-display text-3xl text-ouro-claro">
+      <h1 className="font-display text-3xl text-accent-light">
         Algo não saiu como esperado
       </h1>
-      <p className="max-w-prose text-creme/80">
+      <p className="max-w-prose text-foreground/80">
         Tente novamente em instantes. Se continuar assim, avise a família.
       </p>
       <Button onClick={reset}>Tentar de novo</Button>
@@ -108,13 +108,13 @@ export default function NotFound() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
       <Ornament placement="top" />
-      <h1 className="font-display text-3xl text-ouro-claro">Página não encontrada</h1>
-      <p className="max-w-prose text-creme/80">
+      <h1 className="font-display text-3xl text-accent-light">Página não encontrada</h1>
+      <p className="max-w-prose text-foreground/80">
         Esta parte do convite não existe.
       </p>
       <Link
         href="/"
-        className="inline-flex min-h-11 items-center rounded-full border border-ouro/50 px-6 text-sm text-ouro-claro transition-colors hover:bg-ouro/10"
+        className="inline-flex min-h-11 items-center rounded-full border border-accent/50 px-6 text-sm text-accent-light transition-colors hover:bg-accent/10"
       >
         Voltar ao convite
       </Link>
@@ -248,7 +248,7 @@ export default async function Image() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          backgroundColor: colors.esmeraldaFundo,
+          backgroundColor: colors.surfaceDeep,
         }}
       >
         <img
@@ -269,13 +269,13 @@ export default async function Image() {
             padding: '0 64px',
           }}
         >
-          <div style={{ display: 'flex', fontSize: 84, color: colors.ouro }}>
+          <div style={{ display: 'flex', fontSize: 84, color: colors.accent }}>
             {config.celebrant.monogram}
           </div>
-          <div style={{ display: 'flex', fontSize: 62, color: colors.ouroClaro }}>
+          <div style={{ display: 'flex', fontSize: 62, color: colors.accentLight }}>
             {config.celebrant.name}
           </div>
-          <div style={{ display: 'flex', fontSize: 40, color: colors.creme }}>
+          <div style={{ display: 'flex', fontSize: 40, color: colors.foreground }}>
             {config.celebrant.age} anos
           </div>
           <div
@@ -283,14 +283,14 @@ export default async function Image() {
               display: 'flex',
               width: 180,
               height: 2,
-              backgroundColor: colors.ouro,
+              backgroundColor: colors.accent,
               margin: '10px 0',
             }}
           />
-          <div style={{ display: 'flex', fontSize: 30, color: colors.creme }}>
+          <div style={{ display: 'flex', fontSize: 30, color: colors.foreground }}>
             {date.weekday}, {date.day} de {date.month} de {date.year} · {date.time}
           </div>
-          <div style={{ display: 'flex', fontSize: 26, color: colors.jade }}>
+          <div style={{ display: 'flex', fontSize: 26, color: colors.highlight }}>
             {config.venue.name}
           </div>
         </div>
@@ -330,8 +330,8 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: theme.colors.esmeralda,
-          color: theme.colors.ouroClaro,
+          backgroundColor: theme.colors.surface,
+          color: theme.colors.accentLight,
           fontSize: 32,
           fontWeight: 700,
           letterSpacing: -1,
@@ -367,8 +367,8 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: theme.colors.esmeralda,
-          color: theme.colors.ouroClaro,
+          backgroundColor: theme.colors.surface,
+          color: theme.colors.accentLight,
           fontSize: 88,
           fontWeight: 700,
         }}
@@ -478,15 +478,15 @@ export default async function Page() {
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="flex w-full items-center justify-between print:hidden">
-        <h1 className="font-display text-3xl text-ouro-claro">QR Code das fotos</h1>
-        <p className="text-sm text-creme/60">Aponta para {target}</p>
+        <h1 className="font-display text-3xl text-accent-light">QR Code das fotos</h1>
+        <p className="text-sm text-foreground/60">Aponta para {target}</p>
       </div>
 
-      <div className="flex w-full max-w-md flex-col items-center gap-5 rounded-3xl border-2 border-ouro/50 bg-esmeralda p-8 text-center print:border-black print:bg-white">
-        <p className="font-display text-3xl text-ouro-claro print:text-black">
+      <div className="flex w-full max-w-md flex-col items-center gap-5 rounded-3xl border-2 border-accent/50 bg-surface p-8 text-center print:border-black print:bg-white">
+        <p className="font-display text-3xl text-accent-light print:text-black">
           Tirou uma foto bonita?
         </p>
-        <p className="text-sm text-creme/80 print:text-black">
+        <p className="text-sm text-foreground/80 print:text-black">
           Aponte a câmera e compartilhe com a família de{' '}
           {config.celebrant.name.split(' ')[0]}.
         </p>
@@ -500,12 +500,12 @@ export default async function Page() {
           className="rounded-xl bg-white p-3"
         />
 
-        <p className="text-xs text-creme/60 print:text-black">
+        <p className="text-xs text-foreground/60 print:text-black">
           As fotos ficam privadas, só a família vê.
         </p>
       </div>
 
-      <p className="text-sm text-creme/60 print:hidden">
+      <p className="text-sm text-foreground/60 print:hidden">
         Use Ctrl+P (ou Cmd+P) para imprimir.
       </p>
     </div>
@@ -520,7 +520,7 @@ A impressão fica a cargo do próprio navegador: um botão chamando `window.prin
 Em `app/(admin)/admin/layout.tsx`, dentro do `<nav>`, após o link de Fotos:
 
 ```tsx
-<Link href="/admin/qrcode" className="text-ouro-claro hover:underline">
+<Link href="/admin/qrcode" className="text-accent-light hover:underline">
   QR Code
 </Link>
 ```
@@ -561,7 +561,7 @@ Rode `npm run dev` e verifique cada item, corrigindo o que falhar:
 | Rótulos | Inspecionar os inputs | Todo input tem `<label>` com `htmlFor` correspondente |
 | Erros anunciados | Enviar RSVP vazio | Mensagem com `role="alert"` |
 | Movimento reduzido | Ativar no sistema, recarregar `/` | Sem zoom, sem pulsação, tudo utilizável |
-| Contraste do corpo | Texto creme sobre esmeralda | Confortável; se algum texto pequeno estiver em dourado, troque para creme |
+| Contraste do corpo | Texto claro sobre o fundo escuro | Confortável; se algum texto pequeno estiver em dourado, troque para `text-foreground` |
 | Alvos de toque | Botões no celular | Mínimo 44px de altura |
 | Idioma | Ver o `<html>` | `lang="pt-BR"` |
 | Imagens | Inspecionar `alt` | Decorativas com `alt=""` + `aria-hidden`; informativas com texto real |
@@ -571,7 +571,7 @@ Rode `npm run dev` e verifique cada item, corrigindo o que falhar:
 
 Padrões de correção para os problemas mais prováveis:
 
-- Texto pequeno em dourado sobre esmeralda: trocar `text-ouro` por `text-creme`. O dourado passa em contraste apenas em tamanho de display.
+- Texto pequeno em dourado sobre o fundo escuro: trocar `text-accent` por `text-foreground`. O dourado passa em contraste apenas em tamanho de display.
 - Ícone decorativo sem `aria-hidden`: adicionar o atributo, para o leitor de tela não ler "✦".
 - Botão com menos de 44px: aplicar `min-h-11`.
 

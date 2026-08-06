@@ -50,9 +50,9 @@ lib/config.ts        # getEventConfig() — único ponto de leitura
 
 ```css
 @theme inline {
-  --color-esmeralda: var(--brand-esmeralda);
-  --color-ouro: var(--brand-ouro);
-  --color-jade: var(--brand-jade);
+  --color-surface: var(--brand-surface);
+  --color-accent: var(--brand-accent);
+  --color-highlight: var(--brand-highlight);
 }
 ```
 
