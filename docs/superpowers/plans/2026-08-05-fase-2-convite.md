@@ -579,6 +579,8 @@ export function MenuGrid() {
 
 A abertura roda uma vez por sessão. `sessionStorage` só existe no cliente, então a leitura acontece dentro de `useEffect` — ler no render quebraria a hidratação.
 
+E ela vai protegida por `try/catch`, o que não é zelo excessivo: acesso a `sessionStorage` **lança exceção** com armazenamento bloqueado por privacidade e em webviews embutidas — exatamente o ambiente em que um link do WhatsApp abre. Sem a proteção, `showOpening` ficaria `undefined` para sempre e o convidado encararia uma tela preta permanente. O `setShowOpening(false)` do `handleFinish` fica fora do `try` de propósito: precisa acontecer mesmo se a gravação falhar, senão o botão não leva a lugar nenhum.
+
 ```tsx
 // components/invitation/InvitationExperience.tsx
 'use client'
@@ -615,11 +617,22 @@ export function InvitationExperience({
   const [showOpening, setShowOpening] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
-    setShowOpening(sessionStorage.getItem(SEEN_KEY) !== '1')
+    try {
+      setShowOpening(sessionStorage.getItem(SEEN_KEY) !== '1')
+    } catch {
+      // Armazenamento indisponível (privacidade restrita, webview embutida).
+      // Degradar para "primeira visita" é melhor que travar numa tela vazia.
+      setShowOpening(true)
+    }
   }, [])
 
   function handleFinish() {
-    sessionStorage.setItem(SEEN_KEY, '1')
+    try {
+      sessionStorage.setItem(SEEN_KEY, '1')
+    } catch {
+      // Sem persistência a abertura repete no próximo carregamento — aceitável.
+      // O que não pode é impedir o convidado de entrar.
+    }
     setShowOpening(false)
   }
 
