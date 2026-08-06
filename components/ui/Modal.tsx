@@ -27,7 +27,11 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       onClick={(event) => {
         // O dialog não tem estilo próprio, então sua área É o backdrop:
         // um clique cujo alvo é ele mesmo aconteceu fora do conteúdo.
-        if (event.target === ref.current) onClose()
+        // Fechamos o <dialog> nativamente em vez de chamar onClose aqui: o
+        // evento "close" disparado por close() é a única fonte de verdade,
+        // cobrindo backdrop, Esc e fechamento programático sem duplicar o
+        // callback nem disparar onClose quando o pai fecha por conta própria.
+        if (event.target === ref.current) ref.current?.close()
       }}
       className="m-auto w-[min(92vw,64rem)] bg-transparent p-0 backdrop:bg-black/80"
     >
