@@ -65,8 +65,11 @@ npm install zod@^4.4.3
 
 - [ ] **Step 2: Mover a arte para `public/`**
 
+O arquivo ainda não está sob controle de versão, então `git mv` falharia — use `mv` e adicione depois.
+
 ```bash
-git mv poster.jpeg public/poster.jpeg
+mv poster.jpeg public/poster.jpeg
+git add public/poster.jpeg
 ```
 
 - [ ] **Step 3: Permitir o versionamento do `.env.example`**
@@ -325,15 +328,31 @@ export function formatEventDate(iso: string, timeZone: string): EventDateParts {
 Run: `npx tsc --noEmit`
 Expected: sem erros.
 
-Confirme que a config é aceita e que a data formata como esperado:
+Confirme que a config é aceita e que a data formata como esperado. Crie `scripts/check-config.ts` com caminhos **relativos** — o alias `@/*` depende do resolvedor do Next e não vale fora dele:
+
+```ts
+// scripts/check-config.ts
+import { getEventConfig } from '../lib/config'
+import { formatEventDate } from '../lib/date'
+
+const config = getEventConfig()
+console.log(formatEventDate(config.event.startsAt, config.event.timeZone))
+```
+
+`lib/config.ts` importa `@/config/event.config`; troque esse import por `../config/event.config` se a execução falhar a resolver o alias.
 
 ```bash
-npx tsx -e "import('./lib/config.ts').then(async (m) => { const c = m.getEventConfig(); const d = await import('./lib/date.ts'); console.log(d.formatEventDate(c.event.startsAt, c.event.timeZone)) })"
+npm install -D tsx@^4.23.8
+npx tsx scripts/check-config.ts
 ```
 
 Expected: `weekday: 'sexta-feira'`, `day: '11'`, `month: 'dezembro'`, `year: '2026'`, `time: '19:00'`.
 
-Se `tsx` não estiver disponível, instale como dev dependency: `npm install -D tsx@^4.23.8`.
+Se a verificação passar, apague o script — ele existe só para esta conferência:
+
+```bash
+rm scripts/check-config.ts
+```
 
 - [ ] **Step 6: Commit**
 
@@ -717,9 +736,13 @@ git commit -m "feat: adiciona componentes de UI base do convite"
 
 O grupo `(site)` não aparece na URL: `app/(site)/page.tsx` continua servindo `/`. Ele existe para separar a moldura do convite do layout do admin. O player de música entra aqui na Fase 2.
 
+Os layouts de grupo recebem `children` tipado explicitamente, não `LayoutProps<'/'>`: esse tipo é gerado por rota, e o grupo `(admin)` ainda não tem página alguma, então não haveria tipo para ele. `LayoutProps` fica reservado ao `RootLayout`.
+
 ```tsx
 // app/(site)/layout.tsx
-export default function SiteLayout({ children }: LayoutProps<'/'>) {
+import type { ReactNode } from 'react'
+
+export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-h-dvh flex-col bg-esmeralda-fundo">
       {/* Vinheta: escurece as bordas e faz a arte parecer emoldurada em telas largas. */}
@@ -739,7 +762,9 @@ Sóbrio de propósito: é ferramenta de trabalho, não convite. Sem vinheta, sem
 
 ```tsx
 // app/(admin)/layout.tsx
-export default function AdminLayout({ children }: LayoutProps<'/'>) {
+import type { ReactNode } from 'react'
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-esmeralda-fundo text-creme">
       {children}
