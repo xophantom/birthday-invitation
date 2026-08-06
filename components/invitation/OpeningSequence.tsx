@@ -1,10 +1,13 @@
 'use client'
 
 import { motion } from 'motion/react'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { GoldParticles } from '@/components/invitation/GoldParticles'
 import { useMusicStore } from '@/stores/music-store'
+
+const MotionImage = motion.create(Image)
 
 type OpeningSequenceProps = {
   monogram: string
@@ -46,14 +49,16 @@ export function OpeningSequence({
         />
       ) : (
         <>
-          <motion.img
+          <MotionImage
             src={poster}
             alt=""
             aria-hidden
+            fill
+            sizes="(min-width: 640px) 28rem, 100vw"
             initial={{ opacity: 0, scale: 1.12 }}
             animate={{ opacity: 0.55, scale: 1 }}
             transition={{ duration: 2.4, ease: 'easeOut' }}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="object-cover"
           />
           <GoldParticles />
         </>
