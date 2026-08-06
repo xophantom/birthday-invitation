@@ -12,13 +12,13 @@
 
 Valem para **todas** as tarefas (repetidos da Fase 1 — o executor pode estar lendo apenas este arquivo):
 
-- **Sem TDD.** Nenhum teste automatizado nesta fase. Verificação por `tsc --noEmit`, `npm run lint`, `npm run build` e inspeção visual no navegador.
+- **Sem TDD.** Nenhum teste automatizado nesta fase. Verificação por `npm run typecheck`, `npm run lint`, `npm run build` e inspeção visual no navegador.
 - **Nenhum componente importa `config/event.config.ts` diretamente.** Sempre `getEventConfig()` de `lib/config.ts`, ou props vindas de um Server Component.
 - **Cores de marca sempre em token** (`bg-surface`, `text-accent`, `text-foreground`, `text-danger`). Hex apenas em `app/globals.css` e `config/event.config.ts`. Exceção: preto puro para sombra e escurecimento (`shadow-black/30`, `backdrop:bg-black/80`) é profundidade, não cor de marca.
 - **Tailwind v4:** sem `tailwind.config.js`; tokens em `@theme inline` no `app/globals.css`.
 - **Next.js 16:** `params`/`searchParams` são Promises; `cookies()` é assíncrono.
 - **Todo texto de interface em pt-BR**, com acentuação correta.
-- **Toda animação respeita `prefers-reduced-motion`.**
+- **Toda animação respeita `prefers-reduced-motion`.** Atenção: a regra no `app/globals.css` zera apenas `animation-duration` e `transition-duration`, que são propriedades **CSS**. O `motion` anima via JavaScript e não escuta media query — ele precisa de `<MotionConfig reducedMotion="user">` acima na árvore. A Task 3 cria o `MotionProvider` que faz isso para o grupo `(site)` inteiro; componentes individuais não precisam repetir o cuidado.
 - **Alias de import:** `@/*` → raiz do projeto.
 - **Commits em pt-BR**, formato `tipo: descrição`.
 
@@ -268,13 +268,42 @@ git commit -m "feat: adiciona particulas douradas em css"
 ### Task 3: Sequência de abertura
 
 **Files:**
+- Create: `components/invitation/MotionProvider.tsx`
 - Create: `components/invitation/OpeningSequence.tsx`
+- Modify: `app/(site)/layout.tsx`
 
 **Interfaces:**
 - Consumes: `GoldParticles` (Task 2), `useMusicStore` (Task 1), `Button`
-- Produces: `<OpeningSequence monogram poster videoSrc onFinish />` — `videoSrc: string | null`, `onFinish: () => void`
+- Produces:
+  - `<MotionProvider>{children}</MotionProvider>` — monta `MotionConfig` para o grupo `(site)`
+  - `<OpeningSequence monogram celebrantName poster videoSrc onFinish />` — `videoSrc: string | null`, `onFinish: () => void`
 
-- [ ] **Step 1: Criar o componente**
+- [ ] **Step 1: Criar o provider de movimento**
+
+Isto precisa existir antes de qualquer animação do `motion` entrar em tela. A regra de `prefers-reduced-motion` no `globals.css` alcança apenas animações CSS; as do `motion` são JavaScript e ignoram a media query a menos que a lib seja configurada.
+
+Fazer isso uma vez no layout cobre a abertura, o menu e as transições de rota das tarefas seguintes — corrigir componente a componente seria repetir o mesmo cuidado cinco vezes e esquecer na sexta.
+
+```tsx
+// components/invitation/MotionProvider.tsx
+'use client'
+
+import { MotionConfig } from 'motion/react'
+import type { ReactNode } from 'react'
+
+/**
+ * `reducedMotion="user"` faz a lib respeitar a preferência do sistema em todas
+ * as animações abaixo desta árvore. A regra equivalente no globals.css só
+ * alcança animações CSS — o `motion` anima via JavaScript e precisa disto.
+ */
+export function MotionProvider({ children }: { children: ReactNode }) {
+  return <MotionConfig reducedMotion="user">{children}</MotionConfig>
+}
+```
+
+Em `app/(site)/layout.tsx`, envolva o conteúdo com `<MotionProvider>`, preservando a vinheta e o `{media.soundtrack && <MusicPlayer ... />}` como estão.
+
+- [ ] **Step 2: Criar o componente**
 
 O botão "Abrir convite" é o gesto que destrava o áudio: navegadores bloqueiam autoplay com som, e transformar essa exigência em parte da narrativa é melhor do que um aviso pedindo para clicar.
 
@@ -374,7 +403,7 @@ export function OpeningSequence({
       <button
         type="button"
         onClick={handleOpen}
-        className="absolute bottom-6 right-6 text-xs text-foreground/60 underline underline-offset-4 hover:text-foreground"
+        className="absolute bottom-4 right-4 inline-flex min-h-11 items-center px-3 text-xs text-foreground/60 underline underline-offset-4 hover:text-foreground"
       >
         Pular
       </button>
