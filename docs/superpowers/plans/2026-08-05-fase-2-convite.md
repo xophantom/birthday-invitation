@@ -230,8 +230,8 @@ export function GoldParticles({ count = 28 }: { count?: number }) {
               height: `${size}px`,
               animationDelay: `${delay}s`,
               animationDuration: `${duration}s`,
-              opacity: 0.5,
-              boxShadow: '0 0 6px 1px rgba(232, 199, 102, 0.6)',
+              boxShadow:
+                '0 0 6px 1px color-mix(in srgb, var(--color-accent-light) 60%, transparent)',
             }}
           />
         )
@@ -243,10 +243,18 @@ export function GoldParticles({ count = 28 }: { count?: number }) {
 
 O prefixo `motion-safe:` faz o Tailwind aplicar a animação apenas quando o usuário não pediu movimento reduzido.
 
+Duas sutilezas que parecem detalhe e não são:
+
+**Não defina `opacity` inline.** O `animate-pulse` do Tailwind v4 declara um único keyframe — `@keyframes pulse { 50% { opacity: .5 } }` — e os quadros `0%` e `100%` são preenchidos pelo valor subjacente do elemento. Fixar `opacity: 0.5` inline faz a animação interpolar `0.5 → 0.5 → 0.5`: ela roda e não produz efeito visual algum. Sem o valor inline, a oscilação vai de `1` a `0.5`, que é o pretendido.
+
+**O brilho usa `color-mix` sobre o token, não um rgba literal.** Escrever a cor à mão faria o brilho das partículas ficar no dourado antigo quando a paleta fosse trocada pela config — justamente o que o whitelabel existe para evitar.
+
 - [ ] **Step 2: Verificar**
 
-Run: `npx tsc --noEmit`
+Run: `npm run typecheck`
 Expected: sem erros.
+
+Confirme visualmente que as partículas pulsam, em tempos diferentes entre si — este componente é o tipo de coisa que passa em todos os comandos enquanto não faz nada na tela.
 
 - [ ] **Step 3: Commit**
 
