@@ -74,7 +74,7 @@ Campos relevantes de `EventConfig`: `celebrant.{name,monogram,age}`, `event.{sta
 **Interfaces:**
 - Consumes: `getEventConfig()`
 - Produces:
-  - `useMusicStore` com `{ isPlaying: boolean; isMuted: boolean; hasStarted: boolean; start(): void; toggleMute(): void }`
+  - `useMusicStore` com `{ hasStarted: boolean; isMuted: boolean; start(): void; toggleMute(): void }`
   - `<MusicPlayer src={string} />` montado no layout `(site)`
 
 - [ ] **Step 1: Instalar as dependências da fase**
