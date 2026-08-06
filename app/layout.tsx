@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import { fontDisplay, fontSans } from '@/config/fonts'
 import { getEventConfig } from '@/lib/config'
 import './globals.css'
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   description: `Convite para os ${config.celebrant.age} anos de ${config.celebrant.name}.`,
 }
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   const { colors } = config.theme
 
   return (
