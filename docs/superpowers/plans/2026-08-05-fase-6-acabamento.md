@@ -563,17 +563,26 @@ Rode `npm run dev` e verifique cada item, corrigindo o que falhar:
 | Movimento reduzido | Ativar no sistema, recarregar `/` | Sem zoom, sem pulsação, tudo utilizável |
 | Contraste do corpo | Texto claro sobre o fundo escuro | Confortável; se algum texto pequeno estiver em dourado, troque para `text-foreground` |
 | Alvos de toque | Botões no celular | Mínimo 44px de altura |
+| **Colisão de alvos** | **Com `media.soundtrack` preenchido, abrir `/` em aba anônima e tocar no canto inferior direito durante a abertura** | **Deve acionar "Pular", não a música — ver correção obrigatória abaixo** |
 | Idioma | Ver o `<html>` | `lang="pt-BR"` |
 | Imagens | Inspecionar `alt` | Decorativas com `alt=""` + `aria-hidden`; informativas com texto real |
 | Zoom | Ampliar para 200% no celular | Sem rolagem horizontal |
+| Glifos | Abrir em Android | Nenhum ícone vira tofu (❧ U+2767 é o de maior risco) |
 
 - [ ] **Step 2: Corrigir o que falhar**
 
-Padrões de correção para os problemas mais prováveis:
+**Correção já identificada e obrigatória** — herdada da revisão final da Fase 2, registrada no ledger daquela fase:
+
+O botão de som (`MusicPlayer`, `fixed bottom-5 right-5`, `z-50`) e o "Pular" da abertura (`OpeningSequence`, `absolute bottom-6 right-6`, `z-40`) ocupam o mesmo canto, com hit-box sobreposta de aproximadamente 40×40px. O botão de som vence o hit-test por ter `z-index` maior, então um toque impreciso durante a abertura liga a música em vez de pular.
+
+Está dormente enquanto `media.soundtrack` for `null`, e vira defeito real no dia em que a trilha chegar. A correção mais simples é ocultar o `MusicPlayer` enquanto a abertura estiver visível — durante ela o controle não serve para nada, já que o áudio ainda não começou. Alternativa: reposicionar o "Pular" para o canto oposto.
+
+Padrões de correção para os demais problemas:
 
 - Texto pequeno em dourado sobre o fundo escuro: trocar `text-accent` por `text-foreground`. O dourado passa em contraste apenas em tamanho de display.
 - Ícone decorativo sem `aria-hidden`: adicionar o atributo, para o leitor de tela não ler "✦".
 - Botão com menos de 44px: aplicar `min-h-11`.
+- Glifo Dingbat com risco de tofu: trocar por ✦ ✧ ✶ ✳ ✴, que têm cobertura ampla.
 
 - [ ] **Step 3: Commit**
 
