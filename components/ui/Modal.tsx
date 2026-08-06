@@ -25,12 +25,15 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       aria-label={title}
       onClose={onClose}
       onClick={(event) => {
-        // Fecha ao clicar no backdrop: o alvo é o próprio dialog apenas fora do conteúdo.
+        // O dialog não tem estilo próprio, então sua área É o backdrop:
+        // um clique cujo alvo é ele mesmo aconteceu fora do conteúdo.
         if (event.target === ref.current) onClose()
       }}
-      className="m-auto max-h-[90dvh] w-[min(92vw,64rem)] rounded-2xl border border-ouro/30 bg-esmeralda p-4 text-creme backdrop:bg-black/80"
+      className="m-auto w-[min(92vw,64rem)] bg-transparent p-0 backdrop:bg-black/80"
     >
-      {children}
+      <div className="max-h-[90dvh] overflow-y-auto rounded-2xl border border-ouro/30 bg-esmeralda p-4 text-creme">
+        {children}
+      </div>
     </dialog>
   )
 }

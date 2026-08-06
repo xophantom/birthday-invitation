@@ -7,6 +7,7 @@
   --brand-ouro: #C9A227;
   --brand-ouro-claro: #E8C766;
   --brand-creme: #F3EAD3;
+  --brand-erro: #F3A6A0;
 }
 
 @theme inline {
@@ -16,6 +17,7 @@
   --color-ouro: var(--brand-ouro);
   --color-ouro-claro: var(--brand-ouro-claro);
   --color-creme: var(--brand-creme);
+  --color-erro: var(--brand-erro);
 
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);
