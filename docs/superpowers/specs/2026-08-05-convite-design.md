@@ -1,7 +1,7 @@
 # Convite Digital — Alice 15 Anos
 
 **Data do design:** 05/08/2026
-**Evento:** terça-feira, 01/12/2026, 19h — Espaço Jardim das Acácias, Porto Alegre/RS
+**Evento:** sexta-feira, 11/12/2026, 19h — Espaço Jardim das Acácias, Porto Alegre/RS
 **Stack:** Next.js 16.3 (App Router), React 19.2, Tailwind v4, Neon/Postgres via Drizzle, Vercel Blob
 
 ## Objetivo
@@ -268,9 +268,8 @@ O default de 1000 vem do orçamento de storage: ~840KB por foto (full ~800KB + t
 Estes valores entram em `config/event.config.ts` e não bloqueiam nenhuma fase — o código lê da config, e a config nasce com valores marcados como provisórios:
 
 - Presentes: tamanho de roupa, numeração de calçado, chave Pix
-- Dress code: já definido — evitar tons de verde, cor reservada à debutante
 
-**A confirmar:** 01/12/2026 cai numa terça-feira. Sinalizado ao anfitrião; caso o alvo fosse o fim de semana, o sábado mais próximo é 05/12/2026. Mantido como terça até indicação contrária.
+Já definidos: data (sexta-feira, 11/12/2026, 19h), local (Espaço Jardim das Acácias, com estacionamento próprio) e dress code (evitar tons de verde, cor reservada à debutante).
 
 ## Referências
 
