@@ -1,0 +1,32 @@
+import Link from 'next/link'
+import type { ReactNode } from 'react'
+import { Ornament } from '@/components/ui/Ornament'
+
+type SectionShellProps = {
+  title: string
+  subtitle?: string
+  children: ReactNode
+}
+
+export function SectionShell({ title, subtitle, children }: SectionShellProps) {
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-10">
+      <header className="flex flex-col items-center gap-4 text-center">
+        <Ornament placement="top" />
+        <h1 className="font-display text-4xl text-ouro-claro sm:text-5xl">{title}</h1>
+        {subtitle && <p className="max-w-prose text-creme/80">{subtitle}</p>}
+      </header>
+
+      <div className="mt-10 flex-1">{children}</div>
+
+      <footer className="mt-12 flex justify-center">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-full border border-ouro/50 px-6 text-sm text-ouro-claro transition-colors hover:bg-ouro/10"
+        >
+          Voltar ao convite
+        </Link>
+      </footer>
+    </main>
+  )
+}
