@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { RsvpForm } from './RsvpForm'
 import { SectionShell } from '@/components/invitation/SectionShell'
 
 export const metadata: Metadata = { title: 'Confirmar presença' }
@@ -7,11 +8,9 @@ export default function Page() {
   return (
     <SectionShell
       title="Confirmar presença"
-      subtitle="O formulário de confirmação estará disponível em instantes."
+      subtitle="Precisamos saber quem vem para preparar tudo com carinho."
     >
-      <p className="text-center text-foreground/70">
-        Estamos preparando esta parte do convite.
-      </p>
+      <RsvpForm />
     </SectionShell>
   )
 }
