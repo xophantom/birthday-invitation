@@ -14,7 +14,7 @@ Valem para **todas** as tarefas (repetidos da Fase 1 — o executor pode estar l
 
 - **Sem TDD.** Nenhum teste automatizado nesta fase. Verificação por `tsc --noEmit`, `npm run lint`, `npm run build` e inspeção visual no navegador.
 - **Nenhum componente importa `config/event.config.ts` diretamente.** Sempre `getEventConfig()` de `lib/config.ts`, ou props vindas de um Server Component.
-- **Nenhuma cor literal em componente.** Sempre token (`bg-esmeralda`, `text-ouro`, `text-creme`).
+- **Cores de marca sempre em token** (`bg-esmeralda`, `text-ouro`, `text-creme`, `text-erro`). Hex apenas em `app/globals.css` e `config/event.config.ts`. Exceção: preto puro para sombra e escurecimento (`shadow-black/30`, `backdrop:bg-black/80`) é profundidade, não cor de marca.
 - **Tailwind v4:** sem `tailwind.config.js`; tokens em `@theme inline` no `app/globals.css`.
 - **Next.js 16:** `params`/`searchParams` são Promises; `cookies()` é assíncrono.
 - **Todo texto de interface em pt-BR**, com acentuação correta.

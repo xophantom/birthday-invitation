@@ -14,7 +14,7 @@ Valem para **todas** as tarefas deste plano e dos planos seguintes:
 
 - **Sem TDD.** O `tmp/prompt.md` determina que não se escreve teste antes da implementação e que não há cobertura ampla. Apenas três testes pontuais existirão no projeto inteiro (sessão, schema de RSVP, cálculo de redimensionamento), e nenhum deles está nesta fase. A verificação aqui é `tsc --noEmit`, `npm run lint`, `npm run build` e inspeção visual.
 - **Nenhum componente importa `config/event.config.ts` diretamente.** Sempre `getEventConfig()` de `lib/config.ts`, ou props vindas de um Server Component.
-- **Nenhuma cor literal em componente.** Sempre token (`bg-esmeralda`, `text-ouro`). Hex só em `app/globals.css` e `config/event.config.ts`.
+- **Cores de marca sempre em token** (`bg-esmeralda`, `text-ouro`, `text-creme`, `text-erro`). Hex apenas em `app/globals.css` e `config/event.config.ts`. Exceção: preto puro para sombra e escurecimento (`shadow-black/30`, `backdrop:bg-black/80`) é profundidade, não cor de marca.
 - **Tailwind v4:** não existe `tailwind.config.js`. Tokens são declarados com `@theme inline` dentro de `app/globals.css`.
 - **Next.js 16:** `middleware.ts` não existe mais — o arquivo é `proxy.ts` na raiz. `params` e `searchParams` são Promises. `cookies()` é assíncrono.
 - **Todo texto de interface em pt-BR**, com acentuação correta.
@@ -410,6 +410,9 @@ Os valores em `:root` são fallbacks; o `RootLayout` os sobrescreve inline a par
   --brand-ouro: #C9A227;
   --brand-ouro-claro: #E8C766;
   --brand-creme: #F3EAD3;
+  /* Erro não vem da config: vermelho de alerta é convenção de interface,
+     não decisão de marca, e nenhuma festa deveria escolher o seu. */
+  --brand-erro: #F3A6A0;
 }
 
 @theme inline {
@@ -419,6 +422,7 @@ Os valores em `:root` são fallbacks; o `RootLayout` os sobrescreve inline a par
   --color-ouro: var(--brand-ouro);
   --color-ouro-claro: var(--brand-ouro-claro);
   --color-creme: var(--brand-creme);
+  --color-erro: var(--brand-erro);
 
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);
@@ -630,7 +634,7 @@ export function FormField({
       {children}
       {hint && !error && <p className="text-xs text-creme/60">{hint}</p>}
       {error && (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-erro">
           {error}
         </p>
       )}
@@ -672,16 +676,21 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       aria-label={title}
       onClose={onClose}
       onClick={(event) => {
-        // Fecha ao clicar no backdrop: o alvo é o próprio dialog apenas fora do conteúdo.
+        // O dialog não tem estilo próprio, então sua área É o backdrop:
+        // um clique cujo alvo é ele mesmo aconteceu fora do conteúdo.
         if (event.target === ref.current) onClose()
       }}
-      className="m-auto max-h-[90dvh] w-[min(92vw,64rem)] rounded-2xl border border-ouro/30 bg-esmeralda p-4 text-creme backdrop:bg-black/80"
+      className="m-auto w-[min(92vw,64rem)] bg-transparent p-0 backdrop:bg-black/80"
     >
-      {children}
+      <div className="max-h-[90dvh] overflow-y-auto rounded-2xl border border-ouro/30 bg-esmeralda p-4 text-creme">
+        {children}
+      </div>
     </dialog>
   )
 }
 ```
+
+O `bg-transparent p-0` no `<dialog>` não é cosmético: com padding ou fundo próprios, a faixa entre a borda do dialog e o conteúdo também satisfaz `event.target === ref.current`, e o modal fecharia com o usuário clicando visualmente dentro dele. Todo o visual mora no wrapper interno, dimensionado pelo conteúdo.
 
 - [ ] **Step 5: `Ornament`**
 
