@@ -20,8 +20,7 @@ export function GoldParticles({ count = 28 }: { count?: number }) {
               height: `${size}px`,
               animationDelay: `${delay}s`,
               animationDuration: `${duration}s`,
-              opacity: 0.5,
-              boxShadow: '0 0 6px 1px rgba(232, 199, 102, 0.6)',
+              boxShadow: '0 0 6px 1px color-mix(in srgb, var(--color-accent-light) 60%, transparent)',
             }}
           />
         )
