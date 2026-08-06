@@ -29,18 +29,18 @@ export function FormField({
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={htmlFor} className="font-sans text-sm text-creme">
+      <label htmlFor={htmlFor} className="font-sans text-sm text-foreground">
         {label}
-        {optional && <span className="ml-1 text-creme/50">(opcional)</span>}
+        {optional && <span className="ml-1 text-foreground/50">(opcional)</span>}
       </label>
       {children}
       {hint && (
-        <p id={hintId} className="text-xs text-creme/60">
+        <p id={hintId} className="text-xs text-foreground/60">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="text-xs text-erro">
+        <p id={errorId} role="alert" className="text-xs text-danger">
           {error}
         </p>
       )}

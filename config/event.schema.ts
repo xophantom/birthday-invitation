@@ -30,12 +30,12 @@ export const eventConfigSchema = z.object({
   }),
   theme: z.object({
     colors: z.object({
-      esmeralda: z.string(),
-      esmeraldaFundo: z.string(),
-      jade: z.string(),
-      ouro: z.string(),
-      ouroClaro: z.string(),
-      creme: z.string(),
+      surface: z.string(),
+      surfaceDeep: z.string(),
+      highlight: z.string(),
+      accent: z.string(),
+      accentLight: z.string(),
+      foreground: z.string(),
     }),
     poster: z.string().min(1),
   }),

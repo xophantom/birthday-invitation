@@ -7,9 +7,9 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants = {
   primary:
-    'bg-ouro text-esmeralda-fundo hover:bg-ouro-claro disabled:bg-ouro/40',
+    'bg-accent text-surface-deep hover:bg-accent-light disabled:bg-accent/40',
   ghost:
-    'border border-ouro/50 text-ouro-claro hover:border-ouro hover:bg-ouro/10',
+    'border border-accent/50 text-accent-light hover:border-accent hover:bg-accent/10',
 } as const
 
 const sizes = {

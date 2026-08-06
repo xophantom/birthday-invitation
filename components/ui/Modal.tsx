@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       }}
       className="m-auto w-[min(92vw,64rem)] bg-transparent p-0 backdrop:bg-black/80"
     >
-      <div className="max-h-[90dvh] overflow-y-auto rounded-2xl border border-ouro/30 bg-esmeralda p-4 text-creme">
+      <div className="max-h-[90dvh] overflow-y-auto rounded-2xl border border-accent/30 bg-surface p-4 text-foreground">
         {children}
       </div>
     </dialog>

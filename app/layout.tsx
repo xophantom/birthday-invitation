@@ -23,12 +23,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${fontDisplay.variable} ${fontSans.variable} h-full antialiased`}
       style={
         {
-          '--brand-esmeralda': colors.esmeralda,
-          '--brand-esmeralda-fundo': colors.esmeraldaFundo,
-          '--brand-jade': colors.jade,
-          '--brand-ouro': colors.ouro,
-          '--brand-ouro-claro': colors.ouroClaro,
-          '--brand-creme': colors.creme,
+          '--brand-surface': colors.surface,
+          '--brand-surface-deep': colors.surfaceDeep,
+          '--brand-highlight': colors.highlight,
+          '--brand-accent': colors.accent,
+          '--brand-accent-light': colors.accentLight,
+          '--brand-foreground': colors.foreground,
         } as React.CSSProperties
       }
     >

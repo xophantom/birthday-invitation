@@ -17,23 +17,23 @@
    * declaração sem layer sempre vence as com layer, então isso é seguro.
    * Não mova este bloco para @layer base.
    */
-  --brand-esmeralda: #0B2E1E;
-  --brand-esmeralda-fundo: #071A11;
-  --brand-jade: #A9C64C;
-  --brand-ouro: #C9A227;
-  --brand-ouro-claro: #E8C766;
-  --brand-creme: #F3EAD3;
-  --brand-erro: #F3A6A0;
+  --brand-surface: #0B2E1E;
+  --brand-surface-deep: #071A11;
+  --brand-highlight: #A9C64C;
+  --brand-accent: #C9A227;
+  --brand-accent-light: #E8C766;
+  --brand-foreground: #F3EAD3;
+  --brand-danger: #F3A6A0;
 }
 
 @theme inline {
-  --color-esmeralda: var(--brand-esmeralda);
-  --color-esmeralda-fundo: var(--brand-esmeralda-fundo);
-  --color-jade: var(--brand-jade);
-  --color-ouro: var(--brand-ouro);
-  --color-ouro-claro: var(--brand-ouro-claro);
-  --color-creme: var(--brand-creme);
-  --color-erro: var(--brand-erro);
+  --color-surface: var(--brand-surface);
+  --color-surface-deep: var(--brand-surface-deep);
+  --color-highlight: var(--brand-highlight);
+  --color-accent: var(--brand-accent);
+  --color-accent-light: var(--brand-accent-light);
+  --color-foreground: var(--brand-foreground);
+  --color-danger: var(--brand-danger);
 
   --font-display: var(--font-display-family);
   --font-sans: var(--font-sans-family);
@@ -41,14 +41,14 @@
 
 @layer base {
   body {
-    background-color: var(--brand-esmeralda-fundo);
-    color: var(--brand-creme);
+    background-color: var(--brand-surface-deep);
+    color: var(--brand-foreground);
     font-family: var(--font-sans-family, system-ui), sans-serif;
   }
 
   /* Foco visível e consistente em toda navegação por teclado. */
   :focus-visible {
-    outline: 2px solid var(--brand-ouro-claro);
+    outline: 2px solid var(--brand-accent-light);
     outline-offset: 3px;
   }
 
