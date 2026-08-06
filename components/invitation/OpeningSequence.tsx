@@ -90,7 +90,7 @@ export function OpeningSequence({
       <button
         type="button"
         onClick={handleOpen}
-        className="absolute bottom-6 right-6 text-xs text-foreground/60 underline underline-offset-4 hover:text-foreground"
+        className="absolute bottom-6 right-6 min-h-11 px-3 text-xs text-foreground/60 underline underline-offset-4 hover:text-foreground"
       >
         Pular
       </button>
