@@ -10,6 +10,7 @@ export default function Page() {
     <InvitationExperience
       monogram={config.celebrant.monogram}
       celebrantName={config.celebrant.name}
+      age={config.celebrant.age}
       poster={config.theme.poster}
       videoSrc={config.media.openingVideo}
       date={date}
