@@ -1,6 +1,22 @@
 @import "tailwindcss";
 
+/*
+ * Convenção deste arquivo: estilos de base (body, foco, redução de
+ * movimento) vivem em @layer base — no CSS Cascade 5, declarações fora de
+ * qualquer layer formam a layer implícita final e vencem @layer utilities,
+ * o que sobrescreveria classes do Tailwind como .rounded-full. A única
+ * exceção são as custom properties de marca no :root abaixo; veja o motivo
+ * no comentário daquele bloco.
+ */
+
 :root {
+  /*
+   * Fica FORA de qualquer @layer de propósito: app/global-error.tsx
+   * (Fase 6) renderiza o próprio <html> sem passar pelo RootLayout, então
+   * sem estes fallbacks a tela de erro perderia a paleta inteira. Uma
+   * declaração sem layer sempre vence as com layer, então isso é seguro.
+   * Não mova este bloco para @layer base.
+   */
   --brand-esmeralda: #0B2E1E;
   --brand-esmeralda-fundo: #071A11;
   --brand-jade: #A9C64C;
@@ -19,30 +35,31 @@
   --color-creme: var(--brand-creme);
   --color-erro: var(--brand-erro);
 
-  --font-display: var(--font-display);
-  --font-sans: var(--font-sans);
+  --font-display: var(--font-display-family);
+  --font-sans: var(--font-sans-family);
 }
 
-body {
-  background-color: var(--brand-esmeralda-fundo);
-  color: var(--brand-creme);
-  font-family: var(--font-sans), system-ui, sans-serif;
-}
+@layer base {
+  body {
+    background-color: var(--brand-esmeralda-fundo);
+    color: var(--brand-creme);
+    font-family: var(--font-sans-family, system-ui), sans-serif;
+  }
 
-/* Foco visível e consistente em toda navegação por teclado. */
-:focus-visible {
-  outline: 2px solid var(--brand-ouro-claro);
-  outline-offset: 3px;
-  border-radius: 2px;
-}
+  /* Foco visível e consistente em toda navegação por teclado. */
+  :focus-visible {
+    outline: 2px solid var(--brand-ouro-claro);
+    outline-offset: 3px;
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
