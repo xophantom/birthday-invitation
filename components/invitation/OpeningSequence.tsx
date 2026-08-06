@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
@@ -26,11 +26,16 @@ export function OpeningSequence({
 }: OpeningSequenceProps) {
   const [showButton, setShowButton] = useState(false)
   const start = useMusicStore((state) => state.start)
+  const prefersReducedMotion = useReducedMotion()
+  // Vídeo em tela cheia é justamente o gatilho vestibular que a preferência de
+  // movimento reduzido existe para evitar — cai na sequência animada mesmo
+  // com videoSrc configurado.
+  const showVideo = Boolean(videoSrc) && !prefersReducedMotion
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowButton(true), videoSrc ? 1000 : 3200)
+    const timer = setTimeout(() => setShowButton(true), showVideo ? 1000 : 3200)
     return () => clearTimeout(timer)
-  }, [videoSrc])
+  }, [showVideo])
 
   function handleOpen() {
     start()
@@ -39,9 +44,9 @@ export function OpeningSequence({
 
   return (
     <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-surface-deep px-6">
-      {videoSrc ? (
+      {showVideo ? (
         <video
-          src={videoSrc}
+          src={videoSrc ?? undefined}
           autoPlay
           muted
           playsInline
@@ -95,7 +100,7 @@ export function OpeningSequence({
       <button
         type="button"
         onClick={handleOpen}
-        className="absolute bottom-6 right-6 min-h-11 px-3 text-xs text-foreground/60 underline underline-offset-4 hover:text-foreground"
+        className="absolute bottom-6 right-6 min-h-11 px-3 text-xs text-foreground/60 underline underline-offset-4 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] hover:text-foreground"
       >
         Pular
       </button>

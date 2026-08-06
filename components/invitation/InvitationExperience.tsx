@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MenuGrid } from '@/components/invitation/MenuGrid'
 import { OpeningSequence } from '@/components/invitation/OpeningSequence'
 import { PosterHero } from '@/components/invitation/PosterHero'
+import type { EventDateParts } from '@/lib/date'
 
 const SEEN_KEY = 'convite:abertura-vista'
 
@@ -19,13 +20,7 @@ type InvitationExperienceProps = {
   age: number
   poster: string
   videoSrc: string | null
-  date: {
-    weekday: string
-    day: string
-    month: string
-    year: string
-    time: string
-  }
+  date: Pick<EventDateParts, 'weekday' | 'day' | 'month' | 'year' | 'time'>
 }
 
 export function InvitationExperience({

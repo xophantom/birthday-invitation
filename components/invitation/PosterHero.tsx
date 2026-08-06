@@ -1,15 +1,10 @@
 import Image from 'next/image'
+import type { EventDateParts } from '@/lib/date'
 
 type PosterHeroProps = {
   poster: string
   celebrantName: string
-  date: {
-    weekday: string
-    day: string
-    month: string
-    year: string
-    time: string
-  }
+  date: Pick<EventDateParts, 'weekday' | 'day' | 'month' | 'year' | 'time'>
 }
 
 export function PosterHero({ poster, celebrantName, date }: PosterHeroProps) {

@@ -11,7 +11,7 @@ export default function Page() {
   const sizes = [
     gifts.clothingSize && { label: 'Tamanho de roupa', value: gifts.clothingSize },
     gifts.shoeSize && { label: 'Numeração de calçado', value: gifts.shoeSize },
-  ].filter(Boolean) as { label: string; value: string }[]
+  ].filter((size): size is { label: string; value: string } => Boolean(size))
 
   return (
     <SectionShell
