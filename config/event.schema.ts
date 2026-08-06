@@ -8,7 +8,7 @@ export const eventConfigSchema = z.object({
   }),
   event: z.object({
     /** ISO 8601 com offset. Ex.: 2026-12-11T19:00:00-03:00 */
-    startsAt: z.string().datetime({ offset: true }),
+    startsAt: z.iso.datetime({ offset: true }),
     timeZone: z.string().min(1),
   }),
   venue: z.object({

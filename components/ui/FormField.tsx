@@ -31,7 +31,7 @@ export function FormField({
     <div className="flex flex-col gap-2">
       <label htmlFor={htmlFor} className="font-sans text-sm text-foreground">
         {label}
-        {optional && <span className="ml-1 text-foreground/50">(opcional)</span>}
+        {optional && <span className="ml-1 text-foreground/65">(opcional)</span>}
       </label>
       {children}
       {hint && (

@@ -25,6 +25,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
+      type="button"
       className={`inline-flex items-center justify-center rounded-full font-sans font-medium tracking-wide transition-colors disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     />
