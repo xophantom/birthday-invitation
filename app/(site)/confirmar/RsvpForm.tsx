@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
@@ -25,14 +26,29 @@ function describedBy(htmlFor: string, hasHint: boolean, hasError: boolean) {
 export function RsvpForm() {
   const { form, onSubmit, submitted, serverError } = useRsvpForm()
   const { errors, isSubmitting } = form.formState
+  const successRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (submitted) {
+      successRef.current?.focus()
+    }
+  }, [submitted])
 
   if (submitted) {
     return (
       <Card className="text-center">
-        <p className="font-display text-3xl text-accent-light">Presença confirmada!</p>
-        <p className="mt-3 text-foreground/85">
-          Que alegria ter você conosco. Nos vemos na festa.
-        </p>
+        <div
+          ref={successRef}
+          role="status"
+          aria-live="polite"
+          tabIndex={-1}
+          className="outline-none"
+        >
+          <p className="font-display text-3xl text-accent-light">Presença confirmada!</p>
+          <p className="mt-3 text-foreground/85">
+            Que alegria ter você conosco. Nos vemos na festa.
+          </p>
+        </div>
       </Card>
     )
   }
