@@ -32,12 +32,23 @@ export function InvitationExperience({
   const [showOpening, setShowOpening] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShowOpening(sessionStorage.getItem(SEEN_KEY) !== '1')
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOpening(sessionStorage.getItem(SEEN_KEY) !== '1')
+    } catch {
+      // Armazenamento indisponível (privacidade restrita, webview embutida).
+      // Degradar para "primeira visita" é melhor que travar numa tela vazia.
+      setShowOpening(true)
+    }
   }, [])
 
   function handleFinish() {
-    sessionStorage.setItem(SEEN_KEY, '1')
+    try {
+      sessionStorage.setItem(SEEN_KEY, '1')
+    } catch {
+      // Sem persistência a abertura repete no próximo carregamento — aceitável.
+      // O que não pode é impedir o convidado de entrar.
+    }
     setShowOpening(false)
   }
 
