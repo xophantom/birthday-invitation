@@ -1,6 +1,5 @@
 import 'server-only'
 import { desc, eq, sql } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
 import { db, photos, type NewPhoto, type Photo } from '@/lib/db'
 
 export async function createPhotoRecord(input: NewPhoto): Promise<Photo> {
@@ -30,29 +29,27 @@ export async function listPhotos({
 
   // Comparação de tupla no Postgres: (createdAt, id) < (createdAt_cursor, id_cursor).
   // Resolve a precisão de timestamp dentro do banco, onde microssegundos nunca são perdidos.
-  // Nota: se a linha do cursor foi apagada entre páginas, a subconsulta retorna NULL
-  // e a comparação fica NULL — a página sai vazia, o que é aceito.
-  const cursorRow = alias(photos, 'cursor_row')
-  const query = cursor
+  // Nota: se a linha do cursor foi apagada entre páginas, a subconsulta retorna vazio,
+  // a comparação fica NULL e a página sai vazia — comportamento aceito.
+  const cursorRow = cursor
     ? db
-        .select()
+        .select({ createdAt: photos.createdAt, id: photos.id })
         .from(photos)
-        .where(
-          sql`(${photos.createdAt}, ${photos.id}) < (
-            SELECT ${cursorRow.createdAt}, ${cursorRow.id} FROM ${cursorRow}
-            WHERE ${eq(cursorRow.id, cursor)}
-          )`
-        )
-        .orderBy(desc(photos.createdAt), desc(photos.id))
-        .limit(limit + 1)
-    : db
-        .select()
-        .from(photos)
-        .orderBy(desc(photos.createdAt), desc(photos.id))
-        .limit(limit + 1)
+        .where(eq(photos.id, cursor))
+        .as('cursor_row')
+    : undefined
 
   // Busca um item a mais para saber se existe próxima página sem fazer count.
-  const rows = await query
+  const rows = await db
+    .select()
+    .from(photos)
+    .where(
+      cursorRow
+        ? sql`(${photos.createdAt}, ${photos.id}) < (SELECT ${cursorRow.createdAt}, ${cursorRow.id} FROM ${cursorRow})`
+        : undefined
+    )
+    .orderBy(desc(photos.createdAt), desc(photos.id))
+    .limit(limit + 1)
 
   const items = rows.slice(0, limit)
   const nextCursor = rows.length > limit ? items[items.length - 1].id : null
