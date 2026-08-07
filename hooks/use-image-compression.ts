@@ -50,33 +50,90 @@ async function toJpegIfNeeded(file: File): Promise<File> {
   }
 }
 
+/** Fonte já decodificada, pronta para `drawImage`, com dimensões
+ *  explícitas (não lidas via `.width`/`.height` polimórfico) e uma forma de
+ *  liberar o que foi alocado — `ImageBitmap.close()` num caso,
+ *  `URL.revokeObjectURL` no outro. */
+type DecodedImage = {
+  source: ImageBitmap | HTMLImageElement
+  width: number
+  height: number
+  release: () => void
+}
+
 /**
- * Decodifica a foto em um `ImageBitmap` já com a orientação EXIF aplicada.
+ * Decodifica a foto **uma única vez**, com a orientação EXIF aplicada, e
+ * devolve uma fonte reaproveitável para as duas saídas (full e thumb).
  *
  * Fotos de iPhone em retrato guardam a rotação no EXIF, não nos pixels.
- * `createImageBitmap` ignora esse metadado por padrão — diferente de
- * `<img>`, que sempre respeitou. A opção `imageOrientation: 'from-image'`
- * corrige isso, mas só é aceita em Safari (desktop e iOS) a partir da
- * versão 16: confirmado em caniuse.com, na tabela específica do valor
+ * Pela spec atual, `from-image` já é o valor *padrão* de
+ * `imageOrientation` em `createImageBitmap` — a MDN documenta isso —
+ * então em engine atualizada nem seria preciso passar a opção. O
+ * problema mora nas engines que ainda não chegaram lá: Safari e Safari
+ * iOS até a versão 15.8 implementam a opção `imageOrientation`, mas só
+ * aceitam os valores antigos (`none`/`flipY`) — o enum do WebIDL rejeita
+ * `'from-image'`. Fonte: caniuse.com, tabela específica do valor
  * 'from-image' da opção `imageOrientation` de `createImageBitmap`
  * (https://caniuse.com/mdn-api_createimagebitmap_options_imageorientation_parameter_from-image),
  * que lista Safari/iOS 3.2–15.8 como não suportado e 16.0+ como suportado.
  * iOS 16 é de set/2022; em ago/2026 é a esmagadora maioria dos aparelhos,
  * mas ainda existe quem não atualiza.
  *
- * Em navegador sem suporte, passar a opção rejeita a Promise (o
- * comportamento exato varia por engine — pode ser rejeição assíncrona ou
- * lançamento síncrono de erro na conversão do argumento). O `try/await`
- * abaixo cobre os dois casos e refaz a decodificação sem a opção. Nesse
- * caminho alternativo a orientação EXIF não é corrigida — a foto pode sair
- * deitada — mas o envio não quebra, e é a mesma limitação que qualquer
- * aplicação teria sem essa opção do navegador.
+ * Um `createImageBitmap(file)` sem a opção, nessas mesmas engines antigas,
+ * decodifica com o padrão *delas* — que ignora o EXIF. Ou seja: um
+ * segundo `createImageBitmap` não corrige nada, só evita o erro de enum.
+ * Por isso o `catch` abaixo não tenta de novo com `createImageBitmap` —
+ * decodifica via `<img>` (`decodeViaImageElement`), que essas mesmas
+ * engines sempre orientaram corretamente ao renderizar. A MDN documenta a
+ * orientação por EXIF sendo aplicada no *decode* da imagem, não só no
+ * layout (https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation),
+ * o que é consistente com o resultado de `drawImage` sobre um `<img>` já
+ * decodificado sair orientado — a técnica clássica usada por bibliotecas
+ * de redimensionamento no browser desde antes de `createImageBitmap`
+ * existir.
  */
-async function decodeBitmap(file: File): Promise<ImageBitmap> {
+async function decodeImage(file: File): Promise<DecodedImage> {
   try {
-    return await createImageBitmap(file, { imageOrientation: 'from-image' })
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+    return {
+      source: bitmap,
+      width: bitmap.width,
+      height: bitmap.height,
+      release: () => bitmap.close(),
+    }
   } catch {
-    return await createImageBitmap(file)
+    return decodeViaImageElement(file)
+  }
+}
+
+/**
+ * Caminho alternativo para engines que rejeitam `imageOrientation:
+ * 'from-image'` (ver `decodeImage` acima). `<img>` decodificado com
+ * `.decode()` fica pronto para `drawImage` já com a orientação EXIF
+ * aplicada, sem precisar dessa opção — é a mesma decodificação que a
+ * engine já faz para renderizar um `<img>` normal na página.
+ *
+ * O object URL só é revogado em `decoded.release()`, chamado pelo `finally`
+ * de `compress()` — precisa continuar válido enquanto o `<img>` é
+ * desenhado nas duas saídas (full e thumb).
+ */
+async function decodeViaImageElement(file: File): Promise<DecodedImage> {
+  const url = URL.createObjectURL(file)
+  const img = new Image()
+  img.src = url
+
+  try {
+    await img.decode()
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    throw error
+  }
+
+  return {
+    source: img,
+    width: img.naturalWidth,
+    height: img.naturalHeight,
+    release: () => URL.revokeObjectURL(url),
   }
 }
 
@@ -111,8 +168,12 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
 }
 
 /**
- * Desenha o bitmap no tamanho calculado por `computeTargetSize` — nunca um
- * cálculo próprio — e codifica como JPEG na qualidade pedida.
+ * Desenha a fonte decodificada (bitmap ou `<img>` — ver `DecodedImage`) no
+ * tamanho calculado por `computeTargetSize` — nunca um cálculo próprio — e
+ * codifica como JPEG na qualidade pedida. `sourceWidth`/`sourceHeight` vêm
+ * explícitos de `DecodedImage` porque as duas fontes possíveis expõem
+ * dimensão por propriedades diferentes (`ImageBitmap.width/height` vs.
+ * `HTMLImageElement.naturalWidth/naturalHeight`).
  *
  * 2048px (FULL_MAX_SIDE) no maior lado fica muito abaixo do limite de área
  * de canvas do Safari iOS: o limite histórico é 4096×4096 / 16.777.216px
@@ -137,12 +198,14 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
  * numa aba de celular.
  */
 async function encodeSize(
-  bitmap: ImageBitmap,
+  source: ImageBitmap | HTMLImageElement,
+  sourceWidth: number,
+  sourceHeight: number,
   maxSide: number,
   quality: number,
   fileName: string
 ): Promise<File> {
-  const { width, height } = computeTargetSize(bitmap.width, bitmap.height, maxSide)
+  const { width, height } = computeTargetSize(sourceWidth, sourceHeight, maxSide)
 
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -154,7 +217,7 @@ async function encodeSize(
       throw new Error(ERRO_CANVAS_INDISPONIVEL)
     }
 
-    ctx.drawImage(bitmap, 0, 0, width, height)
+    ctx.drawImage(source, 0, 0, width, height)
 
     const blob = await canvasToJpeg(canvas, quality)
     return new File([blob], fileName, { type: 'image/jpeg' })
@@ -167,20 +230,22 @@ async function encodeSize(
 /**
  * Comprime uma foto para os dois tamanhos do acervo (full e thumbnail).
  *
- * Decodifica uma única vez com `createImageBitmap` e reaproveita o bitmap
- * para as duas saídas — decodificar duas vezes dobraria o custo do passo
- * mais caro, num aparelho de convidado, no meio de uma festa. Sem Web
- * Worker próprio: `createImageBitmap` já decodifica fora da thread
- * principal e `toBlob` é assíncrono, então o que sobra na thread principal
- * é o `drawImage` — pequeno o bastante para não travar a interface.
+ * Decodifica uma única vez (`decodeImage`, com fallback para `<img>` onde
+ * `createImageBitmap` não aceita orientação por EXIF) e reaproveita a
+ * mesma fonte para as duas saídas — decodificar duas vezes dobraria o
+ * custo do passo mais caro, num aparelho de convidado, no meio de uma
+ * festa. Sem Web Worker próprio: no caminho principal `createImageBitmap`
+ * já decodifica fora da thread principal e `toBlob` é assíncrono, então o
+ * que sobra na thread principal é o `drawImage` — pequeno o bastante para
+ * não travar a interface.
  */
 export function useImageCompression() {
   const compress = useCallback(async (file: File): Promise<CompressedPair> => {
     const source = await toJpegIfNeeded(file)
 
-    let bitmap: ImageBitmap
+    let decoded: DecodedImage
     try {
-      bitmap = await decodeBitmap(source)
+      decoded = await decodeImage(source)
     } catch (error) {
       console.error('Falha ao decodificar imagem:', error)
       throw new Error(ERRO_DECODIFICACAO)
@@ -188,13 +253,17 @@ export function useImageCompression() {
 
     try {
       const full = await encodeSize(
-        bitmap,
+        decoded.source,
+        decoded.width,
+        decoded.height,
         FULL_MAX_SIDE,
         FULL_QUALITY,
         buildOutputName(source.name, 'full')
       )
       const thumb = await encodeSize(
-        bitmap,
+        decoded.source,
+        decoded.width,
+        decoded.height,
         THUMB_MAX_SIDE,
         THUMB_QUALITY,
         buildOutputName(source.name, 'thumb')
@@ -202,7 +271,7 @@ export function useImageCompression() {
 
       return { full, thumb, originalName: source.name }
     } finally {
-      bitmap.close()
+      decoded.release()
     }
   }, [])
 
