@@ -6,8 +6,6 @@ import { cache } from 'react'
 import { SESSION_COOKIE } from './cookie-name'
 import { signSession, verifySessionToken } from './token'
 
-export { SESSION_COOKIE }
-
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7
 
 /**
