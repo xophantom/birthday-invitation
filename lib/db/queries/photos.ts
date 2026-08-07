@@ -8,8 +8,9 @@ export async function createPhotoRecord(input: NewPhoto): Promise<Photo> {
 }
 
 export async function countPhotos(): Promise<number> {
-  const rows = await db.$count(photos)
-  return rows
+  // `db.$count` devolve o número de linhas, não as linhas.
+  const total = await db.$count(photos)
+  return total
 }
 
 export async function listPhotos({
