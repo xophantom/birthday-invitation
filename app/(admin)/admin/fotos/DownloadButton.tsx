@@ -79,7 +79,16 @@ export function DownloadButton() {
         )
       ).blob()
 
-      triggerBlobDownload(blob, onlyFavorites ? 'fotos-favoritas.zip' : 'fotos-da-festa.zip')
+      // O texto muda, mas o botão continua desabilitado (`progress` segue
+      // não-nulo) até a promise abaixo resolver: só então o object URL do
+      // zip foi revogado e é seguro liberar um novo download. Dois toques
+      // seguidos criariam dois zips inteiros vivos ao mesmo tempo — no teto
+      // de 1000 fotos deste evento, quase 1,6GB, o bastante para matar a aba
+      // num celular. Zerar `progress` mais cedo (como antes) reabilitava o
+      // botão na hora, mesmo com o zip anterior ainda preso na memória pelos
+      // 60s de segurança do `triggerBlobDownload`.
+      setProgress('Finalizando o download...')
+      await triggerBlobDownload(blob, onlyFavorites ? 'fotos-favoritas.zip' : 'fotos-da-festa.zip')
 
       setProgress(null)
     } catch (downloadError) {

@@ -17,11 +17,14 @@
  *    atraso mantém o blob vivo até o navegador ter iniciado a gravação.
  *
  * O preço do item 2 é o blob permanecer alocado durante a janela de revogação;
- * é aceitável, já que o download em curso precisa dele de qualquer forma.
+ * é aceitável, já que o download em curso precisa dele de qualquer forma. A
+ * promise devolvida resolve só quando essa janela fecha e o object URL já foi
+ * revogado — é o sinal que o chamador usa para saber quando é seguro liberar
+ * um novo download sem manter dois zips inteiros vivos ao mesmo tempo.
  */
 const REVOKE_DELAY_MS = 60_000
 
-export function triggerBlobDownload(blob: Blob, fileName: string): void {
+export function triggerBlobDownload(blob: Blob, fileName: string): Promise<void> {
   const href = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
 
@@ -33,8 +36,11 @@ export function triggerBlobDownload(blob: Blob, fileName: string): void {
   document.body.append(anchor)
   anchor.click()
 
-  setTimeout(() => {
-    anchor.remove()
-    URL.revokeObjectURL(href)
-  }, REVOKE_DELAY_MS)
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      anchor.remove()
+      URL.revokeObjectURL(href)
+      resolve()
+    }, REVOKE_DELAY_MS)
+  })
 }
