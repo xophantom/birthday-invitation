@@ -38,6 +38,21 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
   // prontas, outras falhas) o rótulo do botão deve refletir só o que falta,
   // não o total original.
   const pendingCount = items.length - doneCount
+  /**
+   * Há um envio em voo agora — seja o laço sequencial de `handleSend`
+   * (coberto por `busy`), seja um "Tentar de novo" isolado disparado fora
+   * dele. Sem isso, depois de um "Enviar" parcial (algumas prontas, uma com
+   * erro) `busy` já volta a `false` assim que o laço termina, mas um retry
+   * manual da foto que falhou ainda está em andamento — e nada impedia
+   * tocar "Enviar" de novo nesse intervalo, o que chama `uploadAll` sobre a
+   * mesma foto que já está `uploading`, disparando um segundo envio
+   * concorrente dela (duplicando o par de blobs e a linha em `photos`). Os
+   * dois botões usam `busy || inFlight` para ficar desabilitados sempre que
+   * qualquer envio — em lote ou avulso — estiver em curso.
+   */
+  const inFlight = items.some(
+    (item) => item.status === 'compressing' || item.status === 'uploading'
+  )
 
   /**
    * Região viva persistente (nunca desmontada) para o progresso do envio.
@@ -119,6 +134,7 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
           onChange={(event) => setName(event.target.value)}
           autoComplete="name"
           aria-describedby="uploaderName-hint"
+          aria-invalid={false}
           className={inputClass}
         />
       </FormField>
@@ -154,14 +170,19 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          aria-describedby="photos-hint"
           className="flex min-h-30 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-accent/40 px-6 text-center transition-colors hover:border-accent"
         >
           <span aria-hidden className="text-3xl text-accent">
             ✦
           </span>
           <span className="text-foreground">Toque para escolher as fotos</span>
-          <span id="photos-hint" className="text-xs text-foreground/60">
+          {/*
+            Sem id/aria-describedby próprios: este texto é descendente do
+            botão, então já entra no nome acessível dele por composição
+            padrão da árvore de acessibilidade. Ligar aria-describedby ao
+            mesmo texto faria o leitor de tela anunciá-lo duas vezes.
+          */}
+          <span className="text-xs text-foreground/60">
             Até {maxPerUpload} por vez, {maxFileSizeMb}MB cada
           </span>
         </button>
@@ -202,7 +223,11 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
                     {item.error && (
                       <p className="text-xs break-words text-danger">{item.error}</p>
                     )}
-                    <Button variant="ghost" onClick={() => retry(item.id)}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => retry(item.id)}
+                      disabled={busy || inFlight}
+                    >
                       Tentar de novo
                     </Button>
                   </div>
@@ -215,13 +240,18 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
 
       {allDone ? (
         <Card className="flex flex-col items-center gap-4 text-center">
-          <div
-            ref={successRef}
-            role="status"
-            aria-live="polite"
-            tabIndex={-1}
-            className="outline-none"
-          >
+          {/*
+            Sem role/aria-live aqui: a região viva persistente lá em cima já
+            anuncia "Todas as fotos foram enviadas." no exato momento em que
+            `allDone` vira verdadeiro. Duplicar aria-live neste nó, que só
+            passa a existir *depois* desse momento, é o mesmo problema que o
+            comentário da região persistente aponta — uma região criada em
+            cima da hora não é garantia de anúncio — e ainda soma um terceiro
+            canal ao já formado por aquela região + o foco programático
+            abaixo. O foco entrega o texto uma vez e deixa o convidado no
+            controle certo.
+          */}
+          <div ref={successRef} tabIndex={-1} className="outline-none">
             <p className="font-display text-2xl text-accent-light">Fotos enviadas. Obrigado!</p>
           </div>
           <Button variant="ghost" onClick={reset}>
@@ -230,9 +260,34 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
         </Card>
       ) : (
         items.length > 0 && (
-          <Button size="lg" onClick={handleSend} disabled={busy}>
-            {busy ? 'Enviando...' : `Enviar ${pendingCount} foto(s)`}
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button size="lg" onClick={handleSend} disabled={busy || inFlight}>
+              {busy || inFlight ? 'Enviando...' : `Enviar ${pendingCount} foto(s)`}
+            </Button>
+            {/*
+              Saída sempre disponível enquanto nada está em voo: sem isto, uma
+              foto com falha permanente (ex.: HEIC que a compressão não
+              decodifica) prendia o convidado neste estado para sempre —
+              `allDone` nunca fica verdadeiro, e sem este botão não havia
+              nenhum caminho de volta ao seletor além de recarregar a página.
+              O mesmo resolve o caso mais comum de "escolhi as fotos
+              erradas". Continua sendo uma escolha explícita do convidado
+              (nunca dispara sozinho por uma seleção acidental), o que é
+              exatamente o que a resolução 5 pediu.
+            */}
+            {!busy && !inFlight && (
+              <div className="flex flex-col items-center gap-1">
+                <Button variant="ghost" onClick={reset}>
+                  Escolher outras fotos
+                </Button>
+                {doneCount > 0 && (
+                  <p className="text-xs text-foreground/60">
+                    As {doneCount} foto(s) já enviada(s) continuam salvas.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         )
       )}
     </div>
