@@ -39,6 +39,18 @@ export function AddGuestForm() {
 
   return (
     <Card>
+      {/*
+        Região viva persistente (nunca desmontada) — mesma solução documentada
+        em app/(site)/fotos/PhotoUploader.tsx. O <p> de sucesso/erro abaixo só
+        passa a existir quando `state.message` já tem valor: montar a região
+        viva no mesmo instante em que o texto aparece é o caso que a própria
+        PhotoUploader documenta como não garantido em todo leitor de tela.
+        Aqui a região existe desde o primeiro paint e só o texto muda depois.
+      */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {state.message ?? ''}
+      </div>
+
       <h2 className="font-display text-xl text-accent-light">Adicionar confirmação</h2>
       <p className="mt-1 text-sm text-foreground/60">
         Para quem confirmou por telefone ou WhatsApp.
@@ -82,17 +94,22 @@ export function AddGuestForm() {
             {pending ? 'Salvando...' : 'Adicionar'}
           </Button>
 
-          {/* Sucesso e erro são elementos distintos de propósito: trocar só o
-              texto (ou só o `role`) de um mesmo <p> não faz o leitor de tela
-              anunciar de novo. Montar/desmontar faz. */}
+          {/*
+            Sem role/aria-live aqui: a região viva persistente lá em cima já
+            anuncia o texto assim que `state.message` muda — duplicar o canal
+            aqui faria o leitor de tela falar duas vezes. Sucesso e erro
+            continuam elementos visuais distintos, mas agora também se
+            diferenciam por prefixo e borda, não só pela cor (`text-highlight`
+            vs `text-danger`), para quem não distingue cores.
+          */}
           {state.message &&
             (state.ok ? (
-              <p role="status" className="mt-2 text-sm text-highlight">
-                {state.message}
+              <p className="mt-2 border-l-2 border-highlight pl-2 text-sm text-highlight">
+                <span className="font-medium">Sucesso:</span> {state.message}
               </p>
             ) : (
-              <p role="alert" className="mt-2 text-sm text-danger">
-                {state.message}
+              <p className="mt-2 border-l-2 border-danger pl-2 text-sm text-danger">
+                <span className="font-medium">Erro:</span> {state.message}
               </p>
             ))}
         </div>

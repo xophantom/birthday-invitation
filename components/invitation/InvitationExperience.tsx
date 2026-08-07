@@ -33,6 +33,11 @@ export function InvitationExperience({
 }: InvitationExperienceProps) {
   const mainRef = useRef<HTMLElement>(null)
   const [showOpening, setShowOpening] = useState(false)
+  // true assim que a abertura é exibida; volta a false depois de devolver o
+  // foco ao <main>. Guarda o efeito abaixo para só agir numa transição real
+  // de "mostrando" para "escondida" — nunca no primeiro paint, quando
+  // `showOpening` já nasce false para quem tem a sessão marcada como vista.
+  const openingWasShownRef = useRef(false)
 
   useEffect(() => {
     if (seenThisSession) return
@@ -61,19 +66,52 @@ export function InvitationExperience({
       // aparecer se a página for recarregada de verdade — comportamento
       // aceitável, o que não pode é travar o convidado numa tela vazia.
     }
+    // Só troca o estado aqui. Focar o <main> tem que esperar o próximo
+    // efeito (abaixo): `inert` só sai do nó depois que este `setState`
+    // for de fato commitado, e `.focus()` chamado nesta mesma função,
+    // antes do commit, mira um elemento que ainda está inert — o
+    // navegador recusa silenciosamente e o convidado fica sem foco algum.
     setShowOpening(false)
-    mainRef.current?.focus()
   }
+
+  useEffect(() => {
+    if (showOpening) {
+      openingWasShownRef.current = true
+      return
+    }
+    if (openingWasShownRef.current) {
+      mainRef.current?.focus()
+      openingWasShownRef.current = false
+    }
+  }, [showOpening])
 
   return (
     <>
-      <main ref={mainRef} tabIndex={-1} className="flex flex-1 flex-col">
+      <main
+        ref={mainRef}
+        tabIndex={-1}
+        // Enquanto a abertura está em cena ela é opaca e cobre a tela
+        // inteira, mas sem isto o conteúdo daqui debaixo (pôster, menu)
+        // continuava na ordem de tabulação normal: Tab a partir da raiz
+        // parava num link do menu invisível, escondido atrás da abertura,
+        // sem contorno nenhum à vista. `inert` tira a subárvore inteira do
+        // foco e da árvore de acessibilidade enquanto durar.
+        inert={showOpening}
+        className="flex flex-1 flex-col"
+      >
         <h1 className="sr-only">{`Convite de aniversário de ${celebrantName} — ${age} anos`}</h1>
         <PosterHero poster={poster} celebrantName={celebrantName} date={date} />
         <MenuGrid />
       </main>
       {showOpening && (
-        <div className="fixed inset-0 z-40">
+        // z-[60], acima do z-50 do MusicPlayer (components/invitation/MusicPlayer.tsx):
+        // a abertura é opaca e cobre a tela inteira, mas como z-40 < z-50 o
+        // botão de som (fixed, fora desta árvore) ainda vencia o hit-test e
+        // ficava visível por cima dela — um toque impreciso no canto ligava a
+        // música em vez de acionar "Pular". Ficando acima, a abertura cobre o
+        // botão de som visual e interativamente enquanto durar; ele volta a
+        // responder normalmente assim que ela desmonta.
+        <div className="fixed inset-0 z-[60]">
           <OpeningSequence
             monogram={monogram}
             celebrantName={celebrantName}

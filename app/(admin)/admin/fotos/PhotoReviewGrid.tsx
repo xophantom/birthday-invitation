@@ -159,7 +159,11 @@ export function PhotoReviewGrid({ photos }: { photos: Photo[] }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={opened.fullUrl}
-              alt=""
+              alt={
+                opened.uploadedBy
+                  ? `Foto enviada por ${opened.uploadedBy}`
+                  : 'Foto enviada por um convidado'
+              }
               className="max-h-[75dvh] w-full rounded-xl object-contain"
             />
             <figcaption className="flex flex-wrap items-center justify-between gap-3 text-sm text-foreground/70">
