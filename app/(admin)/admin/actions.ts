@@ -3,18 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import type { AdminActionResult } from './action-result'
 import { destroyAdminSession, requireAdmin } from '@/lib/auth/session'
 import { createRsvpRecord, removeRsvp } from '@/lib/db/queries/rsvp'
 import { rsvpFormSchema } from '@/lib/validation/rsvp'
-
-export type AdminActionResult = { ok: boolean; message?: string }
-
-// Formulário de exclusão é um <form action> comum: alcançável por POST
-// direto com qualquer valor em `id`, sem passar pela tabela. Um id que não
-// bate com o formato de uuid faria o driver do Postgres rejeitar o parâmetro
-// e lançar dentro da action, sem try/catch — o admin veria a tela de erro do
-// Next em vez de, na pior hipótese, um no-op silencioso.
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_PATTERN } from '@/lib/validation/uuid'
 
 export async function addManualRsvp(
   _state: AdminActionResult,
@@ -42,17 +35,36 @@ export async function addManualRsvp(
   }
 
   revalidatePath('/admin')
-  return { ok: true }
+  return { ok: true, message: 'Confirmação adicionada à lista.' }
 }
 
-export async function deleteRsvp(formData: FormData): Promise<void> {
+export async function deleteRsvp(
+  _state: AdminActionResult,
+  formData: FormData
+): Promise<AdminActionResult> {
   await requireAdmin()
 
+  // O formulário de exclusão é alcançável por POST direto com qualquer valor
+  // em `id`, sem passar pela tabela. Um id fora do formato de uuid faria o
+  // driver do Postgres rejeitar o parâmetro e lançar dentro da query.
   const id = String(formData.get('id') ?? '')
-  if (!UUID_PATTERN.test(id)) return
+  if (!UUID_PATTERN.test(id)) {
+    return { ok: false, message: 'Convidado inválido.' }
+  }
 
-  await removeRsvp(id)
+  // Mesmo tratamento das actions irmãs: com o Neon instável no wifi da festa,
+  // uma falha sem try/catch subiria como exceção não tratada e o anfitrião
+  // veria a tela de erro crua do Next — este projeto não tem `error.tsx` em
+  // nenhum segmento. Aqui a falha vira mensagem dentro do próprio modal.
+  try {
+    await removeRsvp(id)
+  } catch (error) {
+    console.error('Falha ao remover confirmação:', error)
+    return { ok: false, message: 'Não foi possível remover. Tente novamente.' }
+  }
+
   revalidatePath('/admin')
+  return { ok: true }
 }
 
 // Exceção deliberada à regra "toda action chama requireAdmin() primeiro":

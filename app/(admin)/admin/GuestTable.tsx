@@ -1,7 +1,40 @@
-import type { Rsvp } from '@/lib/db'
+'use client'
+
+import { startTransition, useActionState, useState } from 'react'
+import type { AdminActionResult } from './action-result'
 import { deleteRsvp } from './actions'
+import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
+import type { Rsvp } from '@/lib/db'
+
+/**
+ * `guestId` diz de qual convidado é a mensagem. Sem isso, uma falha ao
+ * remover o convidado A ficaria pendurada no estado e reapareceria dentro do
+ * modal do convidado B — um erro que não aconteceu, sobre a pessoa errada.
+ */
+type DeleteState = AdminActionResult & { guestId?: string }
+
+const initialState: DeleteState = { ok: true }
 
 export function GuestTable({ guests }: { guests: Rsvp[] }) {
+  const [confirming, setConfirming] = useState<Rsvp | null>(null)
+
+  const [state, action, pending] = useActionState(
+    async (previous: DeleteState, formData: FormData): Promise<DeleteState> => {
+      const result = await deleteRsvp(previous, formData)
+
+      // Fechar só depois do sucesso: se o Neon cair no wifi da festa, o modal
+      // fica aberto com a mensagem em vez de sumir fingindo que removeu.
+      // O `startTransition` é o que o doc do Next 16 pede para atualização de
+      // estado depois de um `await` — sem ele, o fechamento sai da transição e
+      // acontece um quadro antes de a tabela se atualizar.
+      if (result.ok) startTransition(() => setConfirming(null))
+
+      return { ...result, guestId: String(formData.get('id') ?? '') }
+    },
+    initialState
+  )
+
   const counts = new Map<string, number>()
   for (const guest of guests) {
     const key = guest.fullName.trim().toLowerCase()
@@ -12,62 +45,111 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
     return <p className="text-foreground/60">Nenhuma confirmação ainda.</p>
   }
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[46rem] border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-accent/20 text-left text-foreground/60">
-            <th className="py-3 pr-4 font-medium">Nome</th>
-            <th className="py-3 pr-4 font-medium">Telefone</th>
-            <th className="py-3 pr-4 font-medium">Acomp.</th>
-            <th className="py-3 pr-4 font-medium">Recado</th>
-            <th className="py-3 pr-4 font-medium">Origem</th>
-            <th className="py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {guests.map((guest) => {
-            const duplicated = (counts.get(guest.fullName.trim().toLowerCase()) ?? 0) > 1
+  const showError = Boolean(
+    confirming && !state.ok && state.message && state.guestId === confirming.id
+  )
 
-            return (
-              <tr key={guest.id} className="border-b border-accent/10 align-top">
-                <td className="py-3 pr-4 break-words">
-                  {guest.fullName}
-                  {duplicated && (
-                    <span
-                      title="Existe outra confirmação com este mesmo nome"
-                      className="ml-2 rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent-light"
-                    >
-                      nome repetido
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[46rem] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-accent/20 text-left text-foreground/60">
+              <th className="py-3 pr-4 font-medium">Nome</th>
+              <th className="py-3 pr-4 font-medium">Telefone</th>
+              <th className="py-3 pr-4 font-medium">Acomp.</th>
+              <th className="py-3 pr-4 font-medium">Recado</th>
+              <th className="py-3 pr-4 font-medium">Origem</th>
+              <th className="py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {guests.map((guest) => {
+              const duplicated = (counts.get(guest.fullName.trim().toLowerCase()) ?? 0) > 1
+
+              return (
+                <tr key={guest.id} className="border-b border-accent/10 align-top">
+                  <td className="py-3 pr-4 break-words">
+                    {guest.fullName}
+                    {duplicated && (
+                      <span
+                        title="Existe outra confirmação com este mesmo nome"
+                        className="ml-2 rounded-full bg-accent/20 px-2 py-0.5 text-xs text-accent-light"
+                      >
+                        nome repetido
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4 text-foreground/80">{guest.phone ?? '—'}</td>
+                  <td className="py-3 pr-4 text-foreground/80">{guest.companionsCount}</td>
+                  <td className="max-w-xs py-3 pr-4 break-words text-foreground/80">
+                    {guest.message ?? '—'}
+                  </td>
+                  <td className="py-3 pr-4">
+                    <span className="rounded-full border border-accent/30 px-2 py-0.5 text-xs text-foreground/70">
+                      {guest.source === 'admin' ? 'manual' : 'convidado'}
                     </span>
-                  )}
-                </td>
-                <td className="py-3 pr-4 text-foreground/80">{guest.phone ?? '—'}</td>
-                <td className="py-3 pr-4 text-foreground/80">{guest.companionsCount}</td>
-                <td className="max-w-xs py-3 pr-4 break-words text-foreground/80">
-                  {guest.message ?? '—'}
-                </td>
-                <td className="py-3 pr-4">
-                  <span className="rounded-full border border-accent/30 px-2 py-0.5 text-xs text-foreground/70">
-                    {guest.source === 'admin' ? 'manual' : 'convidado'}
-                  </span>
-                </td>
-                <td className="py-3">
-                  <form action={deleteRsvp}>
-                    <input type="hidden" name="id" value={guest.id} />
+                  </td>
+                  <td className="py-3">
+                    {/* Abre a confirmação; não remove. O `aria-label` carrega o
+                        nome porque a tela tem um "Remover" por linha. */}
                     <button
-                      type="submit"
-                      className="text-xs text-danger underline underline-offset-4 hover:text-danger/80"
+                      type="button"
+                      onClick={() => setConfirming(guest)}
+                      aria-label={`Remover ${guest.fullName}`}
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm text-danger underline underline-offset-4 hover:bg-danger/10 hover:no-underline"
                     >
                       Remover
                     </button>
-                  </form>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        title="Remover confirmação"
+      >
+        {confirming && (
+          <form action={action} className="flex flex-col gap-4">
+            <input type="hidden" name="id" value={confirming.id} />
+
+            <div>
+              <h2 className="font-display text-xl text-accent-light">Remover confirmação</h2>
+              <p className="mt-2 text-sm text-foreground/80">
+                Tirar <strong className="text-foreground">{confirming.fullName}</strong> da lista
+                {confirming.companionsCount > 0 &&
+                  ` e ${confirming.companionsCount} acompanhante${
+                    confirming.companionsCount > 1 ? 's' : ''
+                  } do total`}
+                ?
+              </p>
+              <p className="mt-2 text-xs text-foreground/60">
+                O total do buffet cai na hora. Não há como desfazer por esta tela.
+              </p>
+            </div>
+
+            {showError && (
+              <p role="alert" className="text-sm text-danger">
+                {state.message}
+              </p>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-3">
+              <Button variant="ghost" onClick={() => setConfirming(null)} disabled={pending}>
+                Cancelar
+              </Button>
+              <Button variant="danger" type="submit" disabled={pending}>
+                {pending ? 'Removendo...' : 'Remover'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </>
   )
 }

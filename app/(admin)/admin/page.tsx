@@ -16,6 +16,8 @@ export default async function Page() {
 
   return (
     <div className="flex flex-col gap-8">
+      <h1 className="font-display text-3xl text-accent-light">Convidados</h1>
+
       <section className="flex gap-4">
         <div className="rounded-2xl border border-accent/25 px-6 py-4">
           <p className="text-xs uppercase tracking-widest text-foreground/60">Confirmações</p>
