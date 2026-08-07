@@ -1,6 +1,7 @@
 import 'server-only'
 import { desc, eq, sql } from 'drizzle-orm'
 import { db, photos, type NewPhoto, type Photo } from '@/lib/db'
+import { UUID_PATTERN } from '@/lib/validation/uuid'
 
 export async function createPhotoRecord(input: NewPhoto): Promise<Photo> {
   const [created] = await db.insert(photos).values(input).returning()
@@ -21,8 +22,7 @@ export async function listPhotos({
   cursor?: string
 }): Promise<{ items: Photo[]; nextCursor: string | null }> {
   // Valida cursor como UUID. Cursor inválido é ignorado e volta à primeira página.
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  const isValidCursor = !cursor || uuidRegex.test(cursor)
+  const isValidCursor = !cursor || UUID_PATTERN.test(cursor)
 
   if (!isValidCursor) {
     cursor = undefined

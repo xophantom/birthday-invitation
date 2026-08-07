@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'ghost'
+  variant?: 'primary' | 'ghost' | 'danger'
   size?: 'md' | 'lg'
 }
 
@@ -17,6 +17,11 @@ const variants = {
     'bg-accent text-surface-deep hover:bg-accent-light disabled:bg-accent/40',
   ghost:
     'border border-accent/50 text-accent-light hover:border-accent hover:bg-accent/10 disabled:border-accent/20 disabled:text-accent-light/40 disabled:hover:border-accent/20 disabled:hover:bg-transparent',
+  // Só para a confirmação de uma ação destrutiva. O dourado de `primary`
+  // sinaliza "siga em frente"; remover um convidado do total do buffet não é
+  // isso, e no meio da festa a cor é lida antes do texto.
+  danger:
+    'bg-danger text-surface-deep hover:bg-danger/80 disabled:bg-danger/40',
 } as const
 
 const sizes = {
