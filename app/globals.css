@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
+/*
+ * Convenção deste arquivo: estilos de base (body, foco, redução de
+ * movimento) vivem em @layer base — no CSS Cascade 5, declarações fora de
+ * qualquer layer formam a layer implícita final e vencem @layer utilities,
+ * o que sobrescreveria classes do Tailwind como .rounded-full. A única
+ * exceção são as custom properties de marca no :root abaixo; veja o motivo
+ * no comentário daquele bloco.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /*
+   * Fica FORA de qualquer @layer de propósito: app/global-error.tsx
+   * (Fase 6) renderiza o próprio <html> sem passar pelo RootLayout, então
+   * sem estes fallbacks a tela de erro perderia a paleta inteira. Uma
+   * declaração sem layer sempre vence as com layer, então isso é seguro.
+   * Não mova este bloco para @layer base.
+   */
+  --brand-surface: #0B2E1E;
+  --brand-surface-deep: #071A11;
+  --brand-highlight: #A9C64C;
+  --brand-accent: #C9A227;
+  --brand-accent-light: #E8C766;
+  --brand-foreground: #F3EAD3;
+  --brand-danger: #F3A6A0;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--brand-surface);
+  --color-surface-deep: var(--brand-surface-deep);
+  --color-highlight: var(--brand-highlight);
+  --color-accent: var(--brand-accent);
+  --color-accent-light: var(--brand-accent-light);
+  --color-foreground: var(--brand-foreground);
+  --color-danger: var(--brand-danger);
+
+  --font-display: var(--font-display-family);
+  --font-sans: var(--font-sans-family);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: var(--brand-surface-deep);
+    color: var(--brand-foreground);
+    font-family: var(--font-sans-family, system-ui), sans-serif;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Foco visível e consistente em toda navegação por teclado. */
+  :focus-visible {
+    outline: 2px solid var(--brand-accent-light);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

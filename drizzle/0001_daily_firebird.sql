@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "uq_photos_full_pathname" ON "photos" USING btree ("full_pathname");
