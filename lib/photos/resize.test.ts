@@ -32,9 +32,10 @@ describe('computeTargetSize', () => {
   })
 
   it('nunca devolve dimensão zero em proporção extrema', () => {
-    const result = computeTargetSize(1, 100000, THUMB_MAX_SIDE)
-
-    expect(result.width).toBeGreaterThanOrEqual(1)
-    expect(result.height).toBeGreaterThanOrEqual(1)
+    // Valor exato, não `>= 1`: o resultado é determinístico (ratio 0.004,
+    // `Math.round(1 * 0.004)` é 0 e o piso o eleva a 1) e uma afirmação
+    // frouxa deixaria passar qualquer regressão que devolvesse outro valor
+    // positivo — inaceitável num projeto com três testes no total.
+    expect(computeTargetSize(1, 100000, THUMB_MAX_SIDE)).toEqual({ width: 1, height: 400 })
   })
 })
