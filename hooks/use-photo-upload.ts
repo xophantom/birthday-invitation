@@ -23,8 +23,35 @@ export type UploadItem = {
  * loja) — mesmo quando o motivo real é uma mensagem pt-BR que a nossa própria
  * rota de token devolveu, porque o SDK descarta o corpo da resposta de erro
  * e lança a mensagem genérica dele. Ver `uploadOne`.
+ *
+ * Também não ramificamos por essa string para dizer "álbum cheio" quando o
+ * teto de armazenamento é atingido: a mensagem do SDK nesse caso
+ * (`"Failed to retrieve the client token"`) é idêntica à de qualquer outra
+ * falha ao buscar o token (erro 500 genérico, rede caindo etc.), então
+ * tentar distinguir pelo texto rotularia falhas comuns como "teto
+ * atingido" incorretamente — pior do que a mensagem genérica. Por isso o
+ * texto abaixo não promete que tentar de novo resolve (no teto, nunca
+ * resolve) e dá um caminho para quando não resolver.
  */
-const ERRO_ENVIO_GENERICO = 'Não conseguimos enviar esta foto. Tente novamente.'
+const ERRO_ENVIO_GENERICO =
+  'Não conseguimos enviar esta foto. Tente novamente e, se continuar sem funcionar, avise os anfitriões.'
+
+/**
+ * Identificador único de item, estável enquanto o item existe. Não usa
+ * `crypto.randomUUID()` porque essa API só existe em contexto seguro
+ * (HTTPS ou localhost) — em `http://192.168.x.x:3000`, exatamente como se
+ * testa envio de foto num celular de verdade na rede local, ela é
+ * `undefined` e chamar `addFiles` lança um `TypeError` síncrono: a lista
+ * nunca popula e a tela não reage. O contador + timestamp + sufixo
+ * aleatório abaixo não depende de contexto seguro, e é único entre
+ * chamadas sucessivas de `addFiles` e entre arquivos de mesmo nome.
+ */
+let nextItemSequence = 0
+
+function createItemId(): string {
+  nextItemSequence += 1
+  return `${Date.now()}-${nextItemSequence}-${Math.random().toString(36).slice(2, 8)}`
+}
 
 export function usePhotoUpload(uploaderName: string | null) {
   const { compress } = useImageCompression()
@@ -39,11 +66,7 @@ export function usePhotoUpload(uploaderName: string | null) {
   const addFiles = useCallback((files: File[]) => {
     setItems(
       files.map((file) => ({
-        // `crypto.randomUUID()` em vez de `${index}-${file.name}`: o índice
-        // reinicia a cada chamada e o nome do arquivo pode se repetir, então
-        // duas seleções seguidas (ou dois arquivos de mesmo nome numa única
-        // seleção) podiam colidir e uma sobrescrever o estado da outra.
-        id: crypto.randomUUID(),
+        id: createItemId(),
         name: file.name,
         file,
         status: 'pending' as const,

@@ -2,48 +2,165 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createPhotoRecord } from '@/lib/db/queries/photos'
+import { countPhotos, createPhotoRecord } from '@/lib/db/queries/photos'
+import { getPhotosGlobalLimit, PHOTOS_LIMIT_REACHED_MESSAGE } from '@/lib/photos/global-limit'
+
+const PHOTOS_PATHNAME_PREFIX = 'photos/'
+
+/**
+ * Escapa caracteres especiais de regex antes de interpolar um valor dinâmico
+ * num `new RegExp(...)`. Sem isso, um id de store que por acaso contivesse
+ * um metacaractere de regex mudaria o significado do padrão em vez de ser
+ * tratado como texto literal.
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Deriva o id da nossa store a partir de `BLOB_READ_WRITE_TOKEN`, do mesmo
+ * jeito que o SDK faz internamente (`parseStoreIdFromReadWriteToken`,
+ * @vercel/blob 2.7 — conferido em
+ * `node_modules/@vercel/blob/dist/chunk-OYCIHDFF.js`): o token tem o formato
+ * `vercel_blob_rw_<storeId>_<segredo>`, e o storeId é o quarto segmento
+ * separado por `_` (índice 3, 0-based). Normalizado para minúsculas porque
+ * é comparado como texto literal contra um hostname, e hostname é
+ * case-insensitive por especificação.
+ *
+ * Sem o id real da store não há como confirmar que uma URL pertence ao
+ * nosso armazenamento — o brief desta tarefa assume que "o pior caso
+ * restante é um registro apontando para um blob real do próprio store", o
+ * que só é verdade se o store estiver fixado na validação. Por isso, token
+ * ausente ou em formato inesperado devolve `null`, nunca um curinga que
+ * aceitaria qualquer store: cada chamador que recebe `null` recusa a URL e
+ * loga o motivo (ver `blobUrl` abaixo) — nunca aceita tudo, nunca falha em
+ * silêncio.
+ *
+ * A leitura fica atrás de uma função, não em escopo de módulo — mesmo
+ * raciocínio do cliente de banco em `lib/db/index.ts`: adia a leitura do
+ * ambiente para o momento em que ela é necessária (inclusive porque a
+ * variável pode não existir em todo contexto em que este módulo é
+ * importado, como o build). O resultado é cacheado após a primeira
+ * resolução.
+ */
+let cachedStoreId: string | null | undefined
+
+function getBlobStoreId(): string | null {
+  if (cachedStoreId === undefined) {
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    const storeId = token?.split('_')[3]?.toLowerCase()
+    cachedStoreId = storeId && storeId.length > 0 ? storeId : null
+  }
+  return cachedStoreId
+}
 
 /**
  * Formato real de uma URL pública do Vercel Blob (conferido em
  * `constructBlobUrl`, @vercel/blob 2.7, com `access: 'public'`):
- * `https://{storeId}.public.blob.vercel-storage.com/{pathname}`. O pathname
- * sempre começa com `photos/` porque é assim que o hook de upload (Task 5)
- * monta o nome do arquivo.
+ * `https://{storeId}.public.blob.vercel-storage.com/{pathname}`. Fixado no
+ * id real da nossa store (`getBlobStoreId`) — sem isso, a regex batia com o
+ * subdomínio de *qualquer* store pública do Vercel Blob, e um chamador
+ * hostil podia criar a própria store, subir o que quisesse sob `photos/` e
+ * registrar a URL aqui como se fosse nossa. Comparação de hostname é
+ * case-insensitive (flag `i`) porque hostname é case-insensitive por
+ * especificação.
  *
- * Esta regex é a única barreira contra alguém chamando `registerPhoto` por
- * POST direto e apontando o registro para uma URL arbitrária — não é defesa
- * perfeita, é proporcional. Também é o ponto cego mais caro da tarefa: se
- * ela não bater com o formato real, o sintoma vira "a foto sobe com sucesso
- * para o armazenamento, o registro é recusado, e o log só diz 'payload
- * inválido'". Por isso o `refine` abaixo registra a URL recusada e o motivo
- * antes de devolver `false`.
+ * A validação de URL é o ponto cego mais caro desta tarefa: se a regex não
+ * bater com o formato real, o sintoma vira "a foto sobe com sucesso para o
+ * armazenamento, o registro é recusado, e o log só diz 'payload inválido'".
+ * Por isso o `refine` abaixo sempre registra a URL recusada e o motivo antes
+ * de devolver `false` — a mensagem devolvida ao convidado continua genérica.
  */
-const BLOB_URL_PATTERN = /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/photos\//
-
 const blobUrl = z
   .url()
   .refine(
     (value) => {
-      const matches = BLOB_URL_PATTERN.test(value)
-      if (!matches) {
+      const storeId = getBlobStoreId()
+
+      if (!storeId) {
         console.error(
-          'registerPhoto recusou uma URL fora do formato esperado do Blob:',
+          'registerPhoto recusou uma URL porque BLOB_READ_WRITE_TOKEN está ausente ou em formato inesperado — sem o id da store não é possível confirmar a origem da URL:',
           value
         )
+        return false
       }
+
+      const pattern = new RegExp(
+        `^https://${escapeRegExp(storeId)}\\.public\\.blob\\.vercel-storage\\.com/${PHOTOS_PATHNAME_PREFIX}`,
+        'i'
+      )
+      const matches = pattern.test(value)
+
+      if (!matches) {
+        console.error('registerPhoto recusou uma URL fora do formato esperado do Blob:', value)
+      }
+
       return matches
     },
     { error: 'URL fora do armazenamento esperado.' }
   )
 
-const registerPhotoSchema = z.object({
-  fullUrl: blobUrl,
-  thumbUrl: blobUrl,
-  fullPathname: z.string().min(1),
-  thumbPathname: z.string().min(1),
-  uploadedBy: z.string().trim().max(120).nullable(),
-})
+/**
+ * O pathname existe para a Fase 5 apagar o blob (`del(pathname)`) quando o
+ * admin excluir uma foto — um pathname escolhido por um chamador hostil
+ * apagaria qualquer blob da store, não só fotos. Por isso exige o prefixo
+ * `photos/` aqui e, no schema abaixo, que o pathname corresponda de fato à
+ * URL do mesmo par (`pathnameMatchesUrl`) — o prefixo sozinho não impede um
+ * pathname que aponte para outro blob real dentro de `photos/`; as duas
+ * checagens juntas são necessárias.
+ */
+const blobPathname = z
+  .string()
+  .min(1)
+  .refine(
+    (value) => {
+      const matches = value.startsWith(PHOTOS_PATHNAME_PREFIX)
+      if (!matches) {
+        console.error('registerPhoto recusou um pathname fora do prefixo esperado:', value)
+      }
+      return matches
+    },
+    { error: 'Caminho fora do armazenamento esperado.' }
+  )
+
+/**
+ * `pathname` (sem barra inicial) é sempre o final de `url` — é assim que o
+ * SDK monta a URL (`constructBlobUrl`: host + "/" + pathname). Confirma que
+ * quem chamou a action não mandou um pathname de um blob diferente do que a
+ * URL aponta.
+ */
+function pathnameMatchesUrl(url: string, pathname: string): boolean {
+  let actualPathname: string
+  try {
+    actualPathname = new URL(url).pathname
+  } catch {
+    return false
+  }
+
+  const matches = actualPathname === `/${pathname}`
+  if (!matches) {
+    console.error('registerPhoto recusou um pathname que não corresponde à URL informada:', {
+      url,
+      pathname,
+    })
+  }
+  return matches
+}
+
+const registerPhotoSchema = z
+  .object({
+    fullUrl: blobUrl,
+    thumbUrl: blobUrl,
+    fullPathname: blobPathname,
+    thumbPathname: blobPathname,
+    uploadedBy: z.string().trim().max(120).nullable(),
+  })
+  .refine((data) => pathnameMatchesUrl(data.fullUrl, data.fullPathname), {
+    error: 'O caminho da foto não corresponde à URL informada.',
+  })
+  .refine((data) => pathnameMatchesUrl(data.thumbUrl, data.thumbPathname), {
+    error: 'O caminho da miniatura não corresponde à URL informada.',
+  })
 
 export type RegisterPhotoResult = { ok: true } | { ok: false; message: string }
 
@@ -56,6 +173,19 @@ export async function registerPhoto(input: unknown): Promise<RegisterPhotoResult
   }
 
   try {
+    // Replica o teto global da rota de upload (Task 3, mesma regra —
+    // `lib/photos/global-limit.ts`). Aquela rota só barra quem tenta *subir
+    // o arquivo*; esta action é alcançável direto por POST, sem passar pelo
+    // Blob. Sem esta checagem, um POST direto insere registros sem limite
+    // (payload pequeno, nenhum byte sobe) e derruba o teto para os
+    // convidados de verdade que ainda estão tentando enviar foto.
+    const total = await countPhotos()
+
+    if (total >= getPhotosGlobalLimit()) {
+      console.error('registerPhoto recusado: teto global de fotos atingido.')
+      return { ok: false, message: PHOTOS_LIMIT_REACHED_MESSAGE }
+    }
+
     await createPhotoRecord(parsed.data)
   } catch (error) {
     console.error('Falha ao registrar foto:', error)

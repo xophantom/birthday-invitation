@@ -2,36 +2,14 @@ import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { NextResponse } from 'next/server'
 import { getEventConfig } from '@/lib/config'
 import { countPhotos } from '@/lib/db/queries/photos'
-
-const DEFAULT_GLOBAL_LIMIT = 1000
+import { getPhotosGlobalLimit, PHOTOS_LIMIT_REACHED_MESSAGE } from '@/lib/photos/global-limit'
 
 /** Mensagem do erro esperado (teto de armazenamento) — usada para distingui-lo
- * de qualquer falha inesperada no catch abaixo, sem repetir o texto. */
-const LIMITE_ATINGIDO_MESSAGE = 'Limite de armazenamento atingido.'
-
-let cachedGlobalLimit: number | undefined
-
-/**
- * Lê o teto global de fotos armazenadas (em pares full+thumb, a mesma unidade
- * que `countPhotos()` devolve) da variável de ambiente `PHOTOS_GLOBAL_LIMIT`.
- *
- * A leitura é adiada para dentro do handler — não fica no escopo do módulo —
- * porque ali o valor seria congelado no momento em que este arquivo é
- * importado. Mesmo raciocínio do cliente de banco em `lib/db/index.ts`: adiar
- * a leitura do ambiente até o momento em que ela é de fato necessária.
- *
- * Um valor ausente, vazio ou inválido (ex.: "mil", "", "1_000") não vira um
- * `NaN` silencioso — o que faria a comparação do teto falhar sempre e o
- * limite deixar de existir sem nenhum aviso. Nesses casos cai no default.
- */
-function getGlobalLimit(): number {
-  if (cachedGlobalLimit === undefined) {
-    const raw = process.env.PHOTOS_GLOBAL_LIMIT
-    const parsed = raw === undefined ? Number.NaN : Number(raw)
-    cachedGlobalLimit = Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_GLOBAL_LIMIT
-  }
-  return cachedGlobalLimit
-}
+ * de qualquer falha inesperada no catch abaixo, sem repetir o texto.
+ * Compartilhada com a Server Action de registro (Task 5,
+ * `app/(site)/fotos/actions.ts`), que replica este mesmo teto — ver
+ * `lib/photos/global-limit.ts`. */
+const LIMITE_ATINGIDO_MESSAGE = PHOTOS_LIMIT_REACHED_MESSAGE
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -47,7 +25,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         // nessa mesma unidade (pares), então a comparação é direta.
         const total = await countPhotos()
 
-        if (total >= getGlobalLimit()) {
+        if (total >= getPhotosGlobalLimit()) {
           throw new Error(LIMITE_ATINGIDO_MESSAGE)
         }
 
