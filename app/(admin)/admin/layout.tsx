@@ -16,6 +16,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <Link href="/admin/fotos" className="text-accent-light hover:underline">
             Fotos
           </Link>
+          <Link href="/admin/qrcode" className="text-accent-light hover:underline">
+            QR Code
+          </Link>
         </nav>
         <form action={signOut}>
           <button type="submit" className="text-sm text-foreground/70 hover:text-foreground">
