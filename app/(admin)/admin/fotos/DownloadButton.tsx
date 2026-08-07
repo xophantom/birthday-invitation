@@ -3,18 +3,51 @@
 import { downloadZip } from 'client-zip'
 import { useState } from 'react'
 import { getDownloadUrls } from './download-actions'
+import { triggerBlobDownload } from './trigger-download'
 import { Button } from '@/components/ui/Button'
 
+type DownloadEntry = { url: string; name: string }
+
+/**
+ * Quantas fotos são buscadas em paralelo. Também é o teto de blobs de origem
+ * vivos ao mesmo tempo: ~25 × 800KB ≈ 20MB.
+ */
 const BATCH_SIZE = 25
 
-async function fetchBatch(entries: { url: string; name: string }[]) {
-  return Promise.all(
-    entries.map(async (entry) => {
-      const response = await fetch(entry.url)
-      if (!response.ok) throw new Error(`Falha ao baixar ${entry.name}`)
-      return { name: entry.name, input: await response.blob() }
-    })
-  )
+async function fetchEntry(entry: DownloadEntry) {
+  const response = await fetch(entry.url)
+  if (!response.ok) throw new Error(`Falha ao baixar ${entry.name}`)
+
+  return { name: entry.name, input: await response.blob() }
+}
+
+/**
+ * Entrega as fotos ao `client-zip` lote a lote, em vez de montar o array
+ * inteiro antes de compactar.
+ *
+ * `downloadZip` aceita um `ForAwaitable` (`AsyncIterable | Iterable`) e
+ * consome cada entrada sob demanda, gravando-a no stream do zip antes de
+ * pedir a próxima — é o uso que o próprio README da biblioteca recomenda
+ * para entradas buscadas por `fetch`. Como cada `batch` sai de escopo ao fim
+ * da iteração, os blobs já escritos ficam sem referência e o coletor pode
+ * liberá-los; o array de origem nunca cresce além de `BATCH_SIZE`.
+ *
+ * Antes desta mudança o array acumulava **todas** as fotos até o fim: no teto
+ * de 1000 fotos a ~800KB, ~800MB de blobs de origem vivos ao mesmo tempo,
+ * somados ao zip resultante. Como o `client-zip` armazena sem compressão, o
+ * zip final continua tendo o tamanho da soma das fotos — o que esta mudança
+ * elimina é a *segunda* cópia, não a primeira.
+ */
+async function* streamPhotoBlobs(
+  entries: DownloadEntry[],
+  onBatchFetched: (fetched: number) => void
+): AsyncGenerator<{ name: string; input: Blob }> {
+  for (let index = 0; index < entries.length; index += BATCH_SIZE) {
+    const batch = await Promise.all(entries.slice(index, index + BATCH_SIZE).map(fetchEntry))
+
+    onBatchFetched(Math.min(index + BATCH_SIZE, entries.length))
+    yield* batch
+  }
 }
 
 export function DownloadButton() {
@@ -34,23 +67,19 @@ export function DownloadButton() {
         return
       }
 
-      const files: { name: string; input: Blob }[] = []
+      // O progresso avança por lote, não por foto: com 1000 fotos, um
+      // setState por foto seriam 1000 renderizações só para mexer num texto.
+      const blob = await downloadZip(
+        streamPhotoBlobs(entries, (fetched) =>
+          setProgress(
+            fetched < entries.length
+              ? `Baixando ${fetched} de ${entries.length}...`
+              : 'Compactando...'
+          )
+        )
+      ).blob()
 
-      for (let index = 0; index < entries.length; index += BATCH_SIZE) {
-        const batch = entries.slice(index, index + BATCH_SIZE)
-        files.push(...(await fetchBatch(batch)))
-        setProgress(`Baixando ${files.length} de ${entries.length}...`)
-      }
-
-      setProgress('Compactando...')
-      const blob = await downloadZip(files).blob()
-
-      const href = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = href
-      anchor.download = onlyFavorites ? 'fotos-favoritas.zip' : 'fotos-da-festa.zip'
-      anchor.click()
-      URL.revokeObjectURL(href)
+      triggerBlobDownload(blob, onlyFavorites ? 'fotos-favoritas.zip' : 'fotos-da-festa.zip')
 
       setProgress(null)
     } catch (downloadError) {
@@ -70,7 +99,11 @@ export function DownloadButton() {
           Baixar todas
         </Button>
       </div>
-      {progress && <p className="text-xs text-foreground/70">{progress}</p>}
+      {progress && (
+        <p role="status" className="text-xs text-foreground/70">
+          {progress}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-xs text-danger">
           {error}

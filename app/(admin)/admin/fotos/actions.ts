@@ -1,19 +1,17 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import type { AdminActionResult } from '../action-result'
 import { requireAdmin } from '@/lib/auth/session'
 import { togglePhotoFavorite } from '@/lib/db/queries/photos'
-
-export type SetFavoriteResult = { ok: boolean; message?: string }
+import { UUID_PATTERN } from '@/lib/validation/uuid'
 
 // `setFavorite` é uma Server Action, alcançável por POST direto: um `id`
 // fora do formato uuid faria o driver do Postgres lançar dentro da query, e
 // um `isFavorite` que não seja booleano (ex.: string vinda de um POST
 // manual) seguiria sem checagem de tipo em runtime até o `set` do Drizzle.
 // Validamos os dois antes de tocar o banco e devolvemos erro tratado.
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-export async function setFavorite(id: string, isFavorite: boolean): Promise<SetFavoriteResult> {
+export async function setFavorite(id: string, isFavorite: boolean): Promise<AdminActionResult> {
   await requireAdmin()
 
   if (!UUID_PATTERN.test(id) || typeof isFavorite !== 'boolean') {
