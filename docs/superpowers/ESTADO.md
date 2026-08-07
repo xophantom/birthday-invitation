@@ -19,7 +19,7 @@ O agente deve, nesta ordem:
 3. Ler o plano da fase a executar em `docs/superpowers/plans/`
 4. Invocar a skill `superpowers:subagent-driven-development`, que foi o processo usado nas quatro primeiras fases
 
-Os ledgers detalhados de cada fase executada ficam em `.superpowers/sdd/<nome-do-plano>/progress.md` e **não são versionados** — este arquivo consolida o que sobrevive deles.
+Durante a execução, o ledger da fase vive em `.superpowers/sdd/<nome-do-plano>/progress.md`, que é git-ignored. **Ao fechar a fase, copie o ledger para `docs/superpowers/ledgers/` antes de apagar o workspace** — é onde ficam os das fases 1 a 4, e é o único registro detalhado que sobrevive. Este arquivo consolida só o que um agente precisa para retomar.
 
 ## Pendência operacional — antes de qualquer coisa
 
