@@ -19,6 +19,7 @@
     "@vercel/blob": "^2.7.0",
     "drizzle-orm": "^0.45.2",
     "heic2any": "^0.0.4",
+    "jose": "^6.2.8",
     "motion": "^13.0.0",
     "next": "16.3.0",
     "react": "19.2.8",
