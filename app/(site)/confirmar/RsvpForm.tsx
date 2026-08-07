@@ -37,13 +37,16 @@ export function RsvpForm() {
   if (submitted) {
     return (
       <Card className="text-center">
-        <div
-          ref={successRef}
-          role="status"
-          aria-live="polite"
-          tabIndex={-1}
-          className="outline-none"
-        >
+        {/*
+          Sem role/aria-live aqui: `role="status"` já implica
+          `aria-live="polite"` + `aria-atomic`, e o `useEffect` acima move o
+          foco para este mesmo nó — o leitor de tela acabava falando a
+          confirmação duas vezes, uma como região viva e outra ao receber o
+          foco. Mantemos só o gerenciamento de foco, que entrega o texto uma
+          vez e ainda deixa o convidado num ponto conhecido da página. Mesma
+          solução adotada em `/fotos` (app/(site)/fotos/PhotoUploader.tsx).
+        */}
+        <div ref={successRef} tabIndex={-1} className="outline-none">
           <p className="font-display text-3xl text-accent-light">Presença confirmada!</p>
           <p className="mt-3 text-foreground/85">
             Que alegria ter você conosco. Nos vemos na festa.
