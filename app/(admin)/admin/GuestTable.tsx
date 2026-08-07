@@ -49,6 +49,15 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
     confirming && !state.ok && state.message && state.guestId === confirming.id
   )
 
+  // Esc e o clique no backdrop fecham o <dialog> nativamente (o Cancelar é o
+  // único caminho que o `disabled={pending}` alcança), então `confirming`
+  // pode já estar `null` quando a remoção falha, e o parágrafo de erro de
+  // dentro do modal — que depende de `confirming` — nunca chega a montar.
+  // Este aviso cobre exatamente essa lacuna: é o complemento de `showError`
+  // (`!showError`), então os dois nunca ficam visíveis ao mesmo tempo — um
+  // canal só de anúncio para leitor de tela por falha.
+  const showErrorOutsideModal = Boolean(!showError && !state.ok && state.message)
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -108,6 +117,12 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
           </tbody>
         </table>
       </div>
+
+      {showErrorOutsideModal && (
+        <p role="alert" className="text-sm text-danger">
+          {state.message}
+        </p>
+      )}
 
       <Modal
         open={confirming !== null}
