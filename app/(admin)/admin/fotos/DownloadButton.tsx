@@ -86,8 +86,10 @@ export function DownloadButton() {
       // de 1000 fotos deste evento, quase 1,6GB, o bastante para matar a aba
       // num celular. Zerar `progress` mais cedo (como antes) reabilitava o
       // botão na hora, mesmo com o zip anterior ainda preso na memória pelos
-      // 60s de segurança do `triggerBlobDownload`.
-      setProgress('Finalizando o download...')
+      // ~3s de folga do `triggerBlobDownload` (ver o comentário lá: é só o
+      // tempo do navegador *começar* a gravação, não do download inteiro
+      // terminar) — daí o texto abaixo não prometer mais que isso.
+      setProgress('Salvando o arquivo...')
       await triggerBlobDownload(blob, onlyFavorites ? 'fotos-favoritas.zip' : 'fotos-da-festa.zip')
 
       setProgress(null)
