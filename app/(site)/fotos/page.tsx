@@ -3,7 +3,17 @@ import { PhotoUploader } from './PhotoUploader'
 import { SectionShell } from '@/components/invitation/SectionShell'
 import { getEventConfig } from '@/lib/config'
 
-export const metadata: Metadata = { title: 'Enviar fotos' }
+/**
+ * `robots: { index: false }` porque o modelo de ameaça desta tela assume que
+ * só chega aqui quem leu o QR Code impresso na mesa da festa: é um
+ * formulário de upload público, sem login. Indexada, ela viraria alcançável
+ * por busca — e a suposição em que todo o resto da defesa se apoia deixaria
+ * de valer.
+ */
+export const metadata: Metadata = {
+  title: 'Enviar fotos',
+  robots: { index: false, follow: false },
+}
 
 export default function Page() {
   const { celebrant, photos } = getEventConfig()

@@ -12,10 +12,19 @@ import {
 export type CompressedPair = {
   full: File
   thumb: File
-  originalName: string
 }
 
 const HEIC_TYPES = ['image/heic', 'image/heif']
+
+/**
+ * HEIC/HEIF detectado pelo tipo MIME **ou** pela extensão: o `type` de um
+ * `.heic` chega vazio em vários ambientes (o SO nem sempre tem o mapeamento
+ * MIME), então confiar só nele deixaria passar direto para a decodificação
+ * uma foto que precisa de conversão.
+ */
+function isHeic(file: File): boolean {
+  return HEIC_TYPES.includes(file.type) || /\.hei[cf]$/i.test(file.name)
+}
 
 const ERRO_CONVERSAO_HEIC =
   'Não foi possível converter esta foto (formato HEIC/HEIF). Tente outra foto.'
@@ -30,11 +39,18 @@ const ERRO_CODIFICACAO = 'Não foi possível gerar o arquivo desta foto. Tente n
  * navegadores decodificam HEIC nativamente. Carregada sob demanda (`await
  * import`) porque `heic2any` é uma dependência pesada e a maior parte dos
  * envios não precisa dela (Android e câmeras que já entregam JPEG).
+ *
+ * Quando a conversão falha, devolve o **arquivo original** em vez de
+ * encerrar: o público dominante desta festa é iPhone, o `heic2any` instalado
+ * é a 0.0.4 e engasga em variantes reais (HDR, 10-bit, HEIC com múltiplas
+ * imagens) — mas o Safari decodifica HEIC nativamente, então `decodeImage`
+ * ainda tem chance de abrir o mesmo arquivo pelo caminho do `<img>`.
+ * Encerrar aqui jogava fora essa chance. Se a decodificação também falhar,
+ * `compress()` volta a lançar `ERRO_CONVERSAO_HEIC` — a mensagem específica
+ * de HEIC não se perde, ela só deixa de ser lançada cedo demais.
  */
 async function toJpegIfNeeded(file: File): Promise<File> {
-  const isHeic = HEIC_TYPES.includes(file.type) || /\.hei[cf]$/i.test(file.name)
-
-  if (!isHeic) return file
+  if (!isHeic(file)) return file
 
   try {
     const { default: heic2any } = await import('heic2any')
@@ -45,8 +61,8 @@ async function toJpegIfNeeded(file: File): Promise<File> {
       type: 'image/jpeg',
     })
   } catch (error) {
-    console.error('Falha ao converter HEIC para JPEG:', error)
-    throw new Error(ERRO_CONVERSAO_HEIC)
+    console.error('Falha ao converter HEIC para JPEG, tentando decodificar o original:', error)
+    return file
   }
 }
 
@@ -217,6 +233,16 @@ async function encodeSize(
       throw new Error(ERRO_CANVAS_INDISPONIVEL)
     }
 
+    // Reamostragem de qualidade alta. O padrão de `imageSmoothingQuality` é
+    // `'low'`, que num único `drawImage` reduzindo ~10× (12MP → 400px do
+    // thumb) serrilha justamente o que a grade da galeria mostra. Vale
+    // também para o `full`: a redução ali é menor (~2×), mas o `full` é a
+    // cópia que a família vai abrir em tela cheia, o custo é um `drawImage`
+    // por foto, e deixar os dois com reamostragens diferentes faria a
+    // miniatura e a foto grande terem nitidez visivelmente distintas. Onde a
+    // propriedade não existir, atribuí-la é um no-op inofensivo.
+    ctx.imageSmoothingQuality = 'high'
+
     ctx.drawImage(source, 0, 0, width, height)
 
     const blob = await canvasToJpeg(canvas, quality)
@@ -242,13 +268,18 @@ async function encodeSize(
 export function useImageCompression() {
   const compress = useCallback(async (file: File): Promise<CompressedPair> => {
     const source = await toJpegIfNeeded(file)
+    // A conversão HEIC falhou e caímos de volta no arquivo original — só
+    // acontece quando `toJpegIfNeeded` entrou no `catch`, porque no sucesso
+    // ela sempre devolve um `File` novo. Serve apenas para escolher a
+    // mensagem certa se a decodificação nativa também não der conta.
+    const heicConversionFailed = source === file && isHeic(file)
 
     let decoded: DecodedImage
     try {
       decoded = await decodeImage(source)
     } catch (error) {
       console.error('Falha ao decodificar imagem:', error)
-      throw new Error(ERRO_DECODIFICACAO)
+      throw new Error(heicConversionFailed ? ERRO_CONVERSAO_HEIC : ERRO_DECODIFICACAO)
     }
 
     try {
@@ -269,7 +300,7 @@ export function useImageCompression() {
         buildOutputName(source.name, 'thumb')
       )
 
-      return { full, thumb, originalName: source.name }
+      return { full, thumb }
     } finally {
       decoded.release()
     }

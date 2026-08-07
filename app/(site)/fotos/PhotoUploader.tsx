@@ -4,14 +4,34 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
-import { usePhotoUpload } from '@/hooks/use-photo-upload'
+import { usePhotoUpload, type UploadStatus } from '@/hooks/use-photo-upload'
 
-const statusLabel: Record<string, string> = {
+/**
+ * Rótulo de cada estado possível de um item. Tipado como
+ * `Record<UploadStatus, string>` — não `Record<string, string>` — para que
+ * um estado novo adicionado a `UploadStatus` quebre o typecheck aqui em vez
+ * de renderizar `undefined` em silêncio na lista de fotos.
+ */
+const statusLabel: Record<UploadStatus, string> = {
   pending: 'Na fila',
   compressing: 'Preparando...',
   uploading: 'Enviando...',
   done: 'Enviada',
   error: 'Falhou',
+}
+
+/**
+ * Aceita a foto quando o navegador diz que é imagem **ou** quando a extensão
+ * é HEIC/HEIF. O `type` de um arquivo `.heic` chega vazio em vários
+ * ambientes (Windows e alguns gerenciadores de arquivos não têm o mapeamento
+ * MIME), e `hooks/use-image-compression.ts` já detecta HEIC pela extensão
+ * justamente por isso — sem esta segunda checagem a UI recusaria, com
+ * `"IMG_1234.HEIC" não é uma imagem.`, uma foto que a compressão sabe
+ * converter. Continua recusando o que de fato não é imagem (PDF, vídeo,
+ * documento).
+ */
+function isSupportedImage(file: File): boolean {
+  return file.type.startsWith('image/') || /\.hei[cf]$/i.test(file.name)
 }
 
 const inputClass =
@@ -101,7 +121,7 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
       return
     }
 
-    const notImage = files.find((file) => !file.type.startsWith('image/'))
+    const notImage = files.find((file) => !isSupportedImage(file))
     if (notImage) {
       setInputError(`"${notImage.name}" não é uma imagem.`)
       return
@@ -140,15 +160,28 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
       </FormField>
 
       {/*
-        O input real fica sempre fora da árvore de foco/acessibilidade
-        (`hidden`, não `sr-only`): quem aciona o seletor de arquivos é o
-        `<button>` visível abaixo, via `fileInputRef.current.click()`. Um
-        `<label>` estilizado (a forma original) não é um parada de Tab —
-        só controles de formulário recebem foco por teclado — então quem
-        navega por teclado caía direto no input `sr-only`, invisível, sem
-        nenhum indício de onde o foco estava. Com um `<button>` de verdade,
-        o alvo grande e visível é o próprio parado de Tab, e recebe o anel
-        de foco global (`:focus-visible` em app/globals.css).
+        Quem aciona o seletor de arquivos é o `<button>` visível abaixo, via
+        `fileInputRef.current.click()`. Um `<label>` estilizado (a forma
+        original) não é uma parada de Tab — só controles de formulário
+        recebem foco por teclado — então quem navega por teclado caía direto
+        no input invisível, sem nenhum indício de onde o foco estava. Com um
+        `<button>` de verdade, o alvo grande e visível é a própria parada de
+        Tab, e recebe o anel de foco global (`:focus-visible` em
+        app/globals.css).
+
+        O input fica escondido com `sr-only` (`position:absolute` + clip),
+        **nunca com `display:none`**: `.click()` programático num
+        `<input type="file">` com `display:none` tem histórico de não abrir
+        o seletor no WebKit, e é por isso que MUI e react-dropzone usam um
+        input posicionado e transparente em vez de escondê-lo. Aqui isso não
+        é um detalhe de estilo — o QR Code da mesa leva a esta tela, então se
+        o seletor não abrir no Safari do iPhone o único caminho de envio da
+        festa está morto, e não haveria ninguém por perto para depurar.
+        `sr-only` mantém o elemento renderizado e elimina essa categoria de
+        risco; `tabIndex={-1}` e `aria-hidden` tiram do foco e da árvore de
+        acessibilidade o que `display:none` tirava antes — sem eles o input
+        viraria uma parada de Tab invisível, que é justamente o problema que
+        o `<button>` acima veio resolver.
       */}
       <input
         ref={fileInputRef}
@@ -156,7 +189,9 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
         accept="image/*"
         multiple
         onChange={handleSelect}
-        className="hidden"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only"
       />
 
       {/*
