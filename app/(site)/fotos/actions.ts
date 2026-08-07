@@ -4,8 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { countPhotos, createPhotoRecord } from '@/lib/db/queries/photos'
 import { getPhotosGlobalLimit, PHOTOS_LIMIT_REACHED_MESSAGE } from '@/lib/photos/global-limit'
-
-const PHOTOS_PATHNAME_PREFIX = 'photos/'
+import { isPhotosPathname, PHOTOS_PATHNAME_PREFIX } from '@/lib/photos/pathname'
 
 /**
  * Escapa caracteres especiais de regex antes de interpolar um valor dinâmico
@@ -40,16 +39,27 @@ function escapeRegExp(value: string): string {
  * raciocínio do cliente de banco em `lib/db/index.ts`: adia a leitura do
  * ambiente para o momento em que ela é necessária (inclusive porque a
  * variável pode não existir em todo contexto em que este módulo é
- * importado, como o build). O resultado é cacheado após a primeira
- * resolução.
+ * importado, como o build).
+ *
+ * **Só o resultado positivo é cacheado.** Cachear também o `null` fazia a
+ * primeira chamada de um processo que rodasse sem `BLOB_READ_WRITE_TOKEN`
+ * condenar *todo* `registerPhoto` daquela instância a recusar para sempre,
+ * mesmo depois de o ambiente voltar ao normal — e o sintoma seria o pior
+ * possível: 2 blobs órfãos e 0 linhas por foto, em silêncio para o
+ * convidado, com o teto global (que conta linhas) nunca disparando para
+ * conter o estrago. O que o cache economizava era um `split` numa função
+ * que faz round-trip de banco logo em seguida.
  */
-let cachedStoreId: string | null | undefined
+let cachedStoreId: string | undefined
 
 function getBlobStoreId(): string | null {
   if (cachedStoreId === undefined) {
     const token = process.env.BLOB_READ_WRITE_TOKEN
     const storeId = token?.split('_')[3]?.toLowerCase()
-    cachedStoreId = storeId && storeId.length > 0 ? storeId : null
+
+    if (!storeId) return null
+
+    cachedStoreId = storeId
   }
   return cachedStoreId
 }
@@ -107,14 +117,16 @@ const blobUrl = z
  * `photos/` aqui e, no schema abaixo, que o pathname corresponda de fato à
  * URL do mesmo par (`pathnameMatchesUrl`) — o prefixo sozinho não impede um
  * pathname que aponte para outro blob real dentro de `photos/`; as duas
- * checagens juntas são necessárias.
+ * checagens juntas são necessárias. A checagem do prefixo é a mesma função
+ * usada pela rota que assina o token (`lib/photos/pathname.ts`), para as
+ * duas metades desta defesa não poderem divergir.
  */
 const blobPathname = z
   .string()
   .min(1)
   .refine(
     (value) => {
-      const matches = value.startsWith(PHOTOS_PATHNAME_PREFIX)
+      const matches = isPhotosPathname(value)
       if (!matches) {
         console.error('registerPhoto recusou um pathname fora do prefixo esperado:', value)
       }
