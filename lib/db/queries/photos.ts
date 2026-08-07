@@ -1,5 +1,5 @@
 import 'server-only'
-import { desc, eq, lt } from 'drizzle-orm'
+import { and, desc, eq, lt, or } from 'drizzle-orm'
 import { db, photos, type NewPhoto, type Photo } from '@/lib/db'
 
 export async function createPhotoRecord(input: NewPhoto): Promise<Photo> {
@@ -19,19 +19,41 @@ export async function listPhotos({
   limit: number
   cursor?: string
 }): Promise<{ items: Photo[]; nextCursor: string | null }> {
-  const where = cursor ? lt(photos.createdAt, new Date(cursor)) : undefined
+  let where: ReturnType<typeof or | typeof lt> | undefined
+
+  // Decodifica cursor composto (createdAt|id) se fornecido.
+  // Cursor malformado é ignorado e retorna à primeira página.
+  if (cursor) {
+    const [cursorCreatedAtISO, cursorId] = cursor.split('|')
+    const cursorCreatedAt = new Date(cursorCreatedAtISO)
+
+    // Se cursor não puder ser desserializado, ignora e volta à primeira página.
+    if (isNaN(cursorCreatedAt.getTime()) || !cursorId) {
+      where = undefined
+    } else {
+      // Comparação composta para evitar colisão de timestamps em milissegundos:
+      // retorna fotos com (createdAt < cursorCreatedAt) OU
+      // (createdAt == cursorCreatedAt E id < cursorId)
+      where = or(
+        lt(photos.createdAt, cursorCreatedAt),
+        and(eq(photos.createdAt, cursorCreatedAt), lt(photos.id, cursorId))
+      )
+    }
+  }
 
   // Busca um item a mais para saber se existe próxima página sem fazer count.
   const rows = await db
     .select()
     .from(photos)
     .where(where)
-    .orderBy(desc(photos.createdAt))
+    .orderBy(desc(photos.createdAt), desc(photos.id))
     .limit(limit + 1)
 
   const items = rows.slice(0, limit)
   const nextCursor =
-    rows.length > limit ? items[items.length - 1].createdAt.toISOString() : null
+    rows.length > limit
+      ? `${items[items.length - 1].createdAt.toISOString()}|${items[items.length - 1].id}`
+      : null
 
   return { items, nextCursor }
 }
