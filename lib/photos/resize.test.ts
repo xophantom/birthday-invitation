@@ -21,10 +21,7 @@ describe('computeTargetSize', () => {
   })
 
   it('mantém a proporção ao gerar thumbnail', () => {
-    const result = computeTargetSize(693, 895, THUMB_MAX_SIDE)
-
-    expect(result.height).toBe(400)
-    expect(result.width / result.height).toBeCloseTo(693 / 895, 2)
+    expect(computeTargetSize(693, 895, THUMB_MAX_SIDE)).toEqual({ width: 310, height: 400 })
   })
 
   it('trata imagem quadrada sem distorcer', () => {
@@ -32,5 +29,12 @@ describe('computeTargetSize', () => {
       width: 400,
       height: 400,
     })
+  })
+
+  it('nunca devolve dimensão zero em proporção extrema', () => {
+    const result = computeTargetSize(1, 100000, THUMB_MAX_SIDE)
+
+    expect(result.width).toBeGreaterThanOrEqual(1)
+    expect(result.height).toBeGreaterThanOrEqual(1)
   })
 })

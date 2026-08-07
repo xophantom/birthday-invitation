@@ -16,8 +16,8 @@ export function computeTargetSize(
   const ratio = maxSide / largest
 
   return {
-    width: Math.round(width * ratio),
-    height: Math.round(height * ratio),
+    width: Math.max(1, Math.round(width * ratio)),
+    height: Math.max(1, Math.round(height * ratio)),
   }
 }
 
