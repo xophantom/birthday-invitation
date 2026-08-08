@@ -3,11 +3,10 @@
 import { useEffect } from 'react'
 
 /**
- * Cobre falha no próprio layout raiz (`app/layout.tsx`), quando nem o tema
- * carregou — por isso traz `<html>` e `<body>` próprios e cores em hex
- * literal. É a única tela do projeto em que isso é correto: as custom
- * properties `--brand-*` são aplicadas inline pelo layout raiz, então se ele
- * é quem falhou, os tokens podem não existir.
+ * Covers a failure in the root layout itself, before the theme has loaded —
+ * hence its own `<html>`/`<body>` and literal hex colours. The only screen
+ * where that is correct: the `--brand-*` properties are applied inline by the
+ * root layout, so if that is what broke, the tokens may not exist.
  */
 export default function GlobalError({
   error,
@@ -16,10 +15,8 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  // Sendo a tela de último recurso, é aqui que um diagnóstico falta mais: em
-  // produção a mensagem original é substituída por um texto genérico e só o
-  // `digest` liga esta falha à entrada correspondente no log do servidor.
-  // Os dois outros boundaries (`(site)` e `(admin)`) já registram assim.
+  // In production the original message is replaced by a generic one, and only
+  // `digest` links this failure to its server log entry.
   useEffect(() => {
     console.error('Erro no layout raiz:', error)
   }, [error])

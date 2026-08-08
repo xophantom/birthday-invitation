@@ -44,18 +44,15 @@ export async function deleteRsvp(
 ): Promise<AdminActionResult> {
   await requireAdmin()
 
-  // O formulário de exclusão é alcançável por POST direto com qualquer valor
-  // em `id`, sem passar pela tabela. Um id fora do formato de uuid faria o
-  // driver do Postgres rejeitar o parâmetro e lançar dentro da query.
+  // Reachable by direct POST with any `id`. A malformed uuid would make the
+  // Postgres driver throw inside the query.
   const id = String(formData.get('id') ?? '')
   if (!UUID_PATTERN.test(id)) {
     return { ok: false, message: 'Convidado inválido.' }
   }
 
-  // Mesmo tratamento das actions irmãs: com o Neon instável no wifi da festa,
-  // uma falha sem try/catch subiria como exceção não tratada e o anfitrião
-  // veria a tela de erro crua do Next — este projeto não tem `error.tsx` em
-  // nenhum segmento. Aqui a falha vira mensagem dentro do próprio modal.
+  // On flaky party wifi an unhandled DB failure would surface as Next's raw
+  // error screen; here it becomes a message inside the modal.
   try {
     await removeRsvp(id)
   } catch (error) {
@@ -67,12 +64,10 @@ export async function deleteRsvp(
   return { ok: true }
 }
 
-// Exceção deliberada à regra "toda action chama requireAdmin() primeiro":
-// signOut só apaga o cookie de sessão e redireciona para /login. Exigir
-// sessão válida para fazer logout criaria um estado sem saída para quem tem
-// um cookie inválido ou expirado — o botão "Sair" pararia de funcionar
-// justamente quando mais se precisa dele. Chamar sem sessão é inofensivo:
-// na pior hipótese apaga um cookie que já não existia.
+// Deliberate exception to "every action calls requireAdmin() first": requiring
+// a valid session to sign out would strand anyone holding an expired cookie,
+// breaking the button exactly when it is needed. Calling it without a session
+// at worst deletes a cookie that was already gone.
 export async function signOut(): Promise<void> {
   await destroyAdminSession()
   redirect('/login')

@@ -24,13 +24,13 @@ function getDb(): Database {
 }
 
 /**
- * `db` parece o cliente drizzle de sempre, mas é um Proxy: a criação real
- * (e a checagem de DATABASE_URL) só acontece no primeiro acesso a uma
- * propriedade, dentro de `getDb()`. Isso adia o erro de "faltou configurar
- * o banco" do momento em que este módulo é importado para o momento em que
- * uma query realmente roda — onde o try/catch de quem chama consegue
- * capturá-lo. Métodos são religados (`.bind`) à instância real para que
- * `this` dentro deles nunca aponte para o Proxy.
+ * Looks like the usual drizzle client but is a Proxy: the real client (and the
+ * DATABASE_URL check) is created on first property access. That moves the
+ * "database not configured" error from module import time to the moment a
+ * query actually runs, where a caller's try/catch can catch it.
+ *
+ * Methods are `.bind`-ed to the real instance so `this` never points at the
+ * Proxy.
  */
 export const db: Database = new Proxy({} as Database, {
   get(_target, prop) {

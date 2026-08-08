@@ -2,11 +2,10 @@ import Link from 'next/link'
 import { Ornament } from '@/components/ui/Ornament'
 
 /**
- * Compartilhado por `app/not-found.tsx` (URLs que não casam rota nenhuma) e
- * `app/(site)/not-found.tsx` (`notFound()` chamado dentro do grupo). Os dois
- * arquivos existem porque um `not-found` só dentro de `(site)` não cobre uma
- * URL totalmente desconhecida — ver decisão registrada no relatório da
- * Fase 6. Mantendo o conteúdo aqui, os dois ficam sempre idênticos.
+ * Shared by `app/not-found.tsx` (URLs matching no route) and
+ * `app/(site)/not-found.tsx` (`notFound()` inside the group). Both files are
+ * needed because a group-level `not-found` doesn't cover a wholly unknown URL;
+ * keeping the content here keeps them identical.
  */
 export function NotFoundContent() {
   return (

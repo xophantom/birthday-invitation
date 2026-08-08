@@ -34,7 +34,7 @@ export async function createRsvp(values: unknown): Promise<RsvpActionResult> {
     }
   }
 
-  // Mantém a lista do admin (Fase 5) atualizada assim que alguém confirma.
+  // Keeps the admin list fresh as soon as someone confirms.
   revalidatePath('/admin')
 
   return { ok: true }

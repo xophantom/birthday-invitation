@@ -16,12 +16,8 @@ export type CompressedPair = {
 
 const HEIC_TYPES = ['image/heic', 'image/heif']
 
-/**
- * HEIC/HEIF detectado pelo tipo MIME **ou** pela extensão: o `type` de um
- * `.heic` chega vazio em vários ambientes (o SO nem sempre tem o mapeamento
- * MIME), então confiar só nele deixaria passar direto para a decodificação
- * uma foto que precisa de conversão.
- */
+/** Checks the extension too: `.heic` files often arrive with an empty `type`
+ *  because the OS lacks the MIME mapping. */
 function isHeic(file: File): boolean {
   return HEIC_TYPES.includes(file.type) || /\.hei[cf]$/i.test(file.name)
 }
@@ -34,20 +30,14 @@ const ERRO_CANVAS_INDISPONIVEL = 'Não foi possível processar imagens neste nav
 const ERRO_CODIFICACAO = 'Não foi possível gerar o arquivo desta foto. Tente novamente.'
 
 /**
- * Converte HEIC/HEIF (padrão de câmera do iPhone) para JPEG antes de
- * qualquer outro processamento — nem `createImageBitmap` nem a maioria dos
- * navegadores decodificam HEIC nativamente. Carregada sob demanda (`await
- * import`) porque `heic2any` é uma dependência pesada e a maior parte dos
- * envios não precisa dela (Android e câmeras que já entregam JPEG).
+ * Converts HEIC/HEIF (iPhone camera default) to JPEG — most browsers can't
+ * decode it. `heic2any` is loaded on demand because it is heavy and most
+ * uploads don't need it.
  *
- * Quando a conversão falha, devolve o **arquivo original** em vez de
- * encerrar: o público dominante desta festa é iPhone, o `heic2any` instalado
- * é a 0.0.4 e engasga em variantes reais (HDR, 10-bit, HEIC com múltiplas
- * imagens) — mas o Safari decodifica HEIC nativamente, então `decodeImage`
- * ainda tem chance de abrir o mesmo arquivo pelo caminho do `<img>`.
- * Encerrar aqui jogava fora essa chance. Se a decodificação também falhar,
- * `compress()` volta a lançar `ERRO_CONVERSAO_HEIC` — a mensagem específica
- * de HEIC não se perde, ela só deixa de ser lançada cedo demais.
+ * On failure returns the **original** file instead of throwing: heic2any 0.0.4
+ * chokes on real-world variants (HDR, 10-bit, multi-image), but Safari decodes
+ * HEIC natively, so `decodeImage` may still open it via the `<img>` path. If
+ * that also fails, `compress()` throws ERRO_CONVERSAO_HEIC.
  */
 async function toJpegIfNeeded(file: File): Promise<File> {
   if (!isHeic(file)) return file
@@ -66,10 +56,9 @@ async function toJpegIfNeeded(file: File): Promise<File> {
   }
 }
 
-/** Fonte já decodificada, pronta para `drawImage`, com dimensões
- *  explícitas (não lidas via `.width`/`.height` polimórfico) e uma forma de
- *  liberar o que foi alocado — `ImageBitmap.close()` num caso,
- *  `URL.revokeObjectURL` no outro. */
+/** Decoded source ready for `drawImage`. Dimensions are explicit because the
+ *  two possible sources expose them under different properties, and `release`
+ *  abstracts `ImageBitmap.close()` vs. `URL.revokeObjectURL`. */
 type DecodedImage = {
   source: ImageBitmap | HTMLImageElement
   width: number
@@ -78,35 +67,13 @@ type DecodedImage = {
 }
 
 /**
- * Decodifica a foto **uma única vez**, com a orientação EXIF aplicada, e
- * devolve uma fonte reaproveitável para as duas saídas (full e thumb).
+ * Decodes once, with EXIF orientation applied, for reuse across both outputs.
  *
- * Fotos de iPhone em retrato guardam a rotação no EXIF, não nos pixels.
- * Pela spec atual, `from-image` já é o valor *padrão* de
- * `imageOrientation` em `createImageBitmap` — a MDN documenta isso —
- * então em engine atualizada nem seria preciso passar a opção. O
- * problema mora nas engines que ainda não chegaram lá: Safari e Safari
- * iOS até a versão 15.8 implementam a opção `imageOrientation`, mas só
- * aceitam os valores antigos (`none`/`flipY`) — o enum do WebIDL rejeita
- * `'from-image'`. Fonte: caniuse.com, tabela específica do valor
- * 'from-image' da opção `imageOrientation` de `createImageBitmap`
- * (https://caniuse.com/mdn-api_createimagebitmap_options_imageorientation_parameter_from-image),
- * que lista Safari/iOS 3.2–15.8 como não suportado e 16.0+ como suportado.
- * iOS 16 é de set/2022; em ago/2026 é a esmagadora maioria dos aparelhos,
- * mas ainda existe quem não atualiza.
- *
- * Um `createImageBitmap(file)` sem a opção, nessas mesmas engines antigas,
- * decodifica com o padrão *delas* — que ignora o EXIF. Ou seja: um
- * segundo `createImageBitmap` não corrige nada, só evita o erro de enum.
- * Por isso o `catch` abaixo não tenta de novo com `createImageBitmap` —
- * decodifica via `<img>` (`decodeViaImageElement`), que essas mesmas
- * engines sempre orientaram corretamente ao renderizar. A MDN documenta a
- * orientação por EXIF sendo aplicada no *decode* da imagem, não só no
- * layout (https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation),
- * o que é consistente com o resultado de `drawImage` sobre um `<img>` já
- * decodificado sair orientado — a técnica clássica usada por bibliotecas
- * de redimensionamento no browser desde antes de `createImageBitmap`
- * existir.
+ * Safari and iOS Safari up to 15.8 implement `imageOrientation` but reject the
+ * `'from-image'` value at the WebIDL enum level, and their default ignores
+ * EXIF — so retrying without the option would not help. The fallback decodes
+ * through `<img>`, which those engines always orient correctly.
+ * https://caniuse.com/mdn-api_createimagebitmap_options_imageorientation_parameter_from-image
  */
 async function decodeImage(file: File): Promise<DecodedImage> {
   try {
@@ -122,17 +89,8 @@ async function decodeImage(file: File): Promise<DecodedImage> {
   }
 }
 
-/**
- * Caminho alternativo para engines que rejeitam `imageOrientation:
- * 'from-image'` (ver `decodeImage` acima). `<img>` decodificado com
- * `.decode()` fica pronto para `drawImage` já com a orientação EXIF
- * aplicada, sem precisar dessa opção — é a mesma decodificação que a
- * engine já faz para renderizar um `<img>` normal na página.
- *
- * O object URL só é revogado em `decoded.release()`, chamado pelo `finally`
- * de `compress()` — precisa continuar válido enquanto o `<img>` é
- * desenhado nas duas saídas (full e thumb).
- */
+/** The object URL is revoked only in `release()` — the `<img>` must stay valid
+ *  while both outputs are drawn from it. */
 async function decodeViaImageElement(file: File): Promise<DecodedImage> {
   const url = URL.createObjectURL(file)
   const img = new Image()
@@ -153,12 +111,8 @@ async function decodeViaImageElement(file: File): Promise<DecodedImage> {
   }
 }
 
-/**
- * Troca a extensão do nome original por `.jpg` e marca o tamanho gerado.
- * A saída desta pipeline é sempre JPEG (ver `encodeSize`), então o nome do
- * arquivo tem que refletir isso — o route handler da Task 3 assina o token
- * de upload com `allowedContentTypes: ['image/jpeg']` e recusa o resto.
- */
+/** Output is always JPEG (see `encodeSize`), and the upload route signs tokens
+ *  with `allowedContentTypes: ['image/jpeg']`, so the name must match. */
 function buildOutputName(originalName: string, suffix: 'full' | 'thumb'): string {
   const withoutExtension = originalName.replace(/\.[^./\\]+$/, '')
   return `${withoutExtension}-${suffix}.jpg`
@@ -168,9 +122,8 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        // `toBlob` devolve `null` quando a codificação falha (memória,
-        // canvas corrompido etc.). Tratar isso como sucesso geraria um
-        // `File` de tamanho zero que só quebraria lá na frente, no upload.
+        // `toBlob` yields null when encoding fails; treating that as success
+        // would produce a zero-byte File that only breaks later, at upload.
         if (!blob) {
           reject(new Error(ERRO_CODIFICACAO))
           return
@@ -184,34 +137,12 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
 }
 
 /**
- * Desenha a fonte decodificada (bitmap ou `<img>` — ver `DecodedImage`) no
- * tamanho calculado por `computeTargetSize` — nunca um cálculo próprio — e
- * codifica como JPEG na qualidade pedida. `sourceWidth`/`sourceHeight` vêm
- * explícitos de `DecodedImage` porque as duas fontes possíveis expõem
- * dimensão por propriedades diferentes (`ImageBitmap.width/height` vs.
- * `HTMLImageElement.naturalWidth/naturalHeight`).
+ * Draws the decoded source at the size from `computeTargetSize` and encodes it
+ * as JPEG.
  *
- * 2048px (FULL_MAX_SIDE) no maior lado fica muito abaixo do limite de área
- * de canvas do Safari iOS: o limite histórico é 4096×4096 / 16.777.216px
- * totais, ampliado para 8192×8192 / 67.108.864px a partir do iOS 18 — fonte:
- * https://longviewcoder.com/2024/02/09/konva-canvas-limits-in-safari-ios-explainer/
- * (e reproduzido em vários relatos de bug, ex.
- * https://github.com/wojtekmaj/react-pdf/issues/1149). Um canvas de
- * 2048×2048 tem 4.194.304px — menos de um quarto até do limite antigo, e
- * nenhuma foto de celular chega perto de 2048×2048 tendo os dois lados no
- * teto (uma foto 4:3 ou 16:9 sempre tem um lado bem menor que o outro
- * depois do redimensionamento). Por isso não construí detecção de estouro
- * de canvas: a fatia deste requisito que a Task 4 cobre (full/thumb com
- * `FULL_MAX_SIDE`/`THUMB_MAX_SIDE` atuais) nunca se aproxima do limite.
- *
- * Libera o canvas ao final, sucesso ou erro: zerar `width` descarta o
- * buffer de pixels que ele mantém — comportamento documentado pela MDN
- * para a propriedade `width` de `HTMLCanvasElement`
- * (https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/width,
- * seção de descrição: redefinir `width`/`height` reinicia o estado do
- * contexto e limpa o buffer). Relevante porque o Safari iOS também limita
- * memória total de canvas, e o cenário real daqui é várias fotos de 12MP
- * numa aba de celular.
+ * Canvas area stays far below the iOS Safari limit (4096x4096 before iOS 18):
+ * FULL_MAX_SIDE is 2048 on the longest side, so no phone photo comes close.
+ * There is deliberately no overflow detection.
  */
 async function encodeSize(
   source: ImageBitmap | HTMLImageElement,
@@ -233,14 +164,8 @@ async function encodeSize(
       throw new Error(ERRO_CANVAS_INDISPONIVEL)
     }
 
-    // Reamostragem de qualidade alta. O padrão de `imageSmoothingQuality` é
-    // `'low'`, que num único `drawImage` reduzindo ~10× (12MP → 400px do
-    // thumb) serrilha justamente o que a grade da galeria mostra. Vale
-    // também para o `full`: a redução ali é menor (~2×), mas o `full` é a
-    // cópia que a família vai abrir em tela cheia, o custo é um `drawImage`
-    // por foto, e deixar os dois com reamostragens diferentes faria a
-    // miniatura e a foto grande terem nitidez visivelmente distintas. Onde a
-    // propriedade não existir, atribuí-la é um no-op inofensivo.
+    // Default is 'low', which aliases badly on the ~10x downscale of the
+    // thumbnail. Applied to both outputs so they don't differ in sharpness.
     ctx.imageSmoothingQuality = 'high'
 
     ctx.drawImage(source, 0, 0, width, height)
@@ -248,30 +173,27 @@ async function encodeSize(
     const blob = await canvasToJpeg(canvas, quality)
     return new File([blob], fileName, { type: 'image/jpeg' })
   } finally {
+    // Zeroing width/height discards the pixel buffer — iOS Safari also caps
+    // total canvas memory, and guests upload several 12MP photos in a row.
     canvas.width = 0
     canvas.height = 0
   }
 }
 
 /**
- * Comprime uma foto para os dois tamanhos do acervo (full e thumbnail).
+ * Compresses a photo into the two sizes the gallery stores (full and thumb).
  *
- * Decodifica uma única vez (`decodeImage`, com fallback para `<img>` onde
- * `createImageBitmap` não aceita orientação por EXIF) e reaproveita a
- * mesma fonte para as duas saídas — decodificar duas vezes dobraria o
- * custo do passo mais caro, num aparelho de convidado, no meio de uma
- * festa. Sem Web Worker próprio: no caminho principal `createImageBitmap`
- * já decodifica fora da thread principal e `toBlob` é assíncrono, então o
- * que sobra na thread principal é o `drawImage` — pequeno o bastante para
- * não travar a interface.
+ * Decodes once and reuses the source for both outputs — the decode is the
+ * expensive step, on a guest's phone, during a party. No Web Worker:
+ * `createImageBitmap` already decodes off the main thread and `toBlob` is
+ * async, leaving only `drawImage` on it.
  */
 export function useImageCompression() {
   const compress = useCallback(async (file: File): Promise<CompressedPair> => {
     const source = await toJpegIfNeeded(file)
-    // A conversão HEIC falhou e caímos de volta no arquivo original — só
-    // acontece quando `toJpegIfNeeded` entrou no `catch`, porque no sucesso
-    // ela sempre devolve um `File` novo. Serve apenas para escolher a
-    // mensagem certa se a decodificação nativa também não der conta.
+    // Only true when `toJpegIfNeeded` hit its catch (on success it always
+    // returns a new File). Used solely to pick the right error message if the
+    // native decode also fails.
     const heicConversionFailed = source === file && isHeic(file)
 
     let decoded: DecodedImage

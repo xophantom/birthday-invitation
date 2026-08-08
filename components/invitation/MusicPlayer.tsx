@@ -14,8 +14,8 @@ export function MusicPlayer({ src }: { src: string }) {
   useEffect(() => {
     const audio = audioRef.current
     if (!audio || !hasStarted) return
-    // play() rejeita se o navegador não considerar o gesto válido; ignorar é o
-    // comportamento correto — o convite não deve quebrar por causa da trilha.
+    // play() rejects when the browser doesn't accept the gesture; ignoring is
+    // correct — the invitation must not break over the soundtrack.
     audio.play().catch(() => {})
   }, [hasStarted])
 
@@ -25,9 +25,9 @@ export function MusicPlayer({ src }: { src: string }) {
 
   function handleClick() {
     if (!hasStarted) {
-      // Nem toda sessão passa pela abertura (reload direto, link para /manual
-      // compartilhado). Este clique é o único gesto do usuário disponível
-      // nesses casos, então ele mesmo destrava a reprodução.
+      // Not every session goes through the opening (direct reload, a shared
+      // deep link), so this click is the only user gesture available to
+      // unlock playback.
       start()
       audioRef.current?.play().catch(() => {})
       return
@@ -41,14 +41,10 @@ export function MusicPlayer({ src }: { src: string }) {
       ? 'Reativar música'
       : 'Silenciar música'
 
-  // Este componente é irmão do <main> do convite (vive no layout do grupo),
-  // então o `inert` que a InvitationExperience aplica enquanto a abertura
-  // está em cena não o alcança, e z-index nunca afetou ordem de tabulação:
-  // sem isto o botão continuava alcançável por `Tab` e presente na árvore de
-  // acessibilidade, invisível atrás de uma tela opaca. Sai inteiro de cena
-  // em vez de receber `inert` porque o <audio> tem `preload="none"` e nada
-  // toca antes do primeiro gesto — não há reprodução em curso para
-  // interromper. Assim que a abertura termina ele volta como sempre foi.
+  // This lives in the group layout, a sibling of the invitation's <main>, so
+  // the `inert` applied there can't reach it — and z-index never affected tab
+  // order. Unmounting rather than going `inert` is safe because `<audio>` uses
+  // `preload="none"` and nothing plays before the first gesture.
   if (isOpeningVisible) return null
 
   return (

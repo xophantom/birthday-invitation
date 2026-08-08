@@ -5,21 +5,16 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: 'md' | 'lg'
 }
 
-/**
- * Toda variante precisa de um estado `disabled:` visível. `cursor-not-allowed`
- * (aplicado abaixo, para todas) não existe em toque: num celular o botão
- * parece habilitado e simplesmente não responde. `ghost` desabilitado
- * enfraquece borda e texto pelo mesmo caminho que `primary` já usa para o
- * fundo.
- */
+/** Every variant needs a visible `disabled:` state: `cursor-not-allowed`
+ *  doesn't exist on touch, where a disabled button just looks enabled and
+ *  silently ignores taps. */
 const variants = {
   primary:
     'bg-accent text-surface-deep hover:bg-accent-light disabled:bg-accent/40',
   ghost:
     'border border-accent/50 text-accent-light hover:border-accent hover:bg-accent/10 disabled:border-accent/20 disabled:text-accent-light/40 disabled:hover:border-accent/20 disabled:hover:bg-transparent',
-  // Só para a confirmação de uma ação destrutiva. O dourado de `primary`
-  // sinaliza "siga em frente"; remover um convidado do total do buffet não é
-  // isso, e no meio da festa a cor é lida antes do texto.
+  // Confirmation of a destructive action only. The gold of `primary` reads as
+  // "go ahead", and mid-party the colour is read before the label.
   danger:
     'bg-danger text-surface-deep hover:bg-danger/80 disabled:bg-danger/40',
 } as const

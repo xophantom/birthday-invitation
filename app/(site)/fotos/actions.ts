@@ -6,49 +6,22 @@ import { countPhotos, createPhotoRecord } from '@/lib/db/queries/photos'
 import { getPhotosGlobalLimit, PHOTOS_LIMIT_REACHED_MESSAGE } from '@/lib/photos/global-limit'
 import { isPhotosPathname, PHOTOS_PATHNAME_PREFIX } from '@/lib/photos/pathname'
 
-/**
- * Escapa caracteres especiais de regex antes de interpolar um valor dinâmico
- * num `new RegExp(...)`. Sem isso, um id de store que por acaso contivesse
- * um metacaractere de regex mudaria o significado do padrão em vez de ser
- * tratado como texto literal.
- */
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /**
- * Deriva o id da nossa store a partir de `BLOB_READ_WRITE_TOKEN`, do mesmo
- * jeito que o SDK faz internamente (`parseStoreIdFromReadWriteToken`,
- * @vercel/blob 2.7 — conferido em
- * `node_modules/@vercel/blob/dist/chunk-OYCIHDFF.js`): o token tem o formato
- * `vercel_blob_rw_<storeId>_<segredo>`, e o storeId é o quarto segmento
- * separado por `_` (índice 3, 0-based). Normalizado para minúsculas porque
- * é comparado como texto literal contra um hostname, e hostname é
- * case-insensitive por especificação.
+ * Extracts our store id from `BLOB_READ_WRITE_TOKEN`, the same way the SDK
+ * does internally: the token is `vercel_blob_rw_<storeId>_<secret>`.
+ * Lowercased because it is compared against a hostname.
  *
- * Sem o id real da store não há como confirmar que uma URL pertence ao
- * nosso armazenamento — o brief desta tarefa assume que "o pior caso
- * restante é um registro apontando para um blob real do próprio store", o
- * que só é verdade se o store estiver fixado na validação. Por isso, token
- * ausente ou em formato inesperado devolve `null`, nunca um curinga que
- * aceitaria qualquer store: cada chamador que recebe `null` recusa a URL e
- * loga o motivo (ver `blobUrl` abaixo) — nunca aceita tudo, nunca falha em
- * silêncio.
+ * Returns `null` — never a wildcard — when the token is missing or malformed;
+ * without the real store id there is no way to confirm a URL is ours, so
+ * callers must reject rather than accept everything.
  *
- * A leitura fica atrás de uma função, não em escopo de módulo — mesmo
- * raciocínio do cliente de banco em `lib/db/index.ts`: adia a leitura do
- * ambiente para o momento em que ela é necessária (inclusive porque a
- * variável pode não existir em todo contexto em que este módulo é
- * importado, como o build).
- *
- * **Só o resultado positivo é cacheado.** Cachear também o `null` fazia a
- * primeira chamada de um processo que rodasse sem `BLOB_READ_WRITE_TOKEN`
- * condenar *todo* `registerPhoto` daquela instância a recusar para sempre,
- * mesmo depois de o ambiente voltar ao normal — e o sintoma seria o pior
- * possível: 2 blobs órfãos e 0 linhas por foto, em silêncio para o
- * convidado, com o teto global (que conta linhas) nunca disparando para
- * conter o estrago. O que o cache economizava era um `split` numa função
- * que faz round-trip de banco logo em seguida.
+ * Only the positive result is cached. Caching `null` would condemn every
+ * `registerPhoto` in an instance that started without the env var to reject
+ * forever, silently leaving orphan blobs and zero rows.
  */
 let cachedStoreId: string | undefined
 
@@ -65,21 +38,16 @@ function getBlobStoreId(): string | null {
 }
 
 /**
- * Formato real de uma URL pública do Vercel Blob (conferido em
- * `constructBlobUrl`, @vercel/blob 2.7, com `access: 'public'`):
- * `https://{storeId}.public.blob.vercel-storage.com/{pathname}`. Fixado no
- * id real da nossa store (`getBlobStoreId`) — sem isso, a regex batia com o
- * subdomínio de *qualquer* store pública do Vercel Blob, e um chamador
- * hostil podia criar a própria store, subir o que quisesse sob `photos/` e
- * registrar a URL aqui como se fosse nossa. Comparação de hostname é
- * case-insensitive (flag `i`) porque hostname é case-insensitive por
- * especificação.
+ * Public Vercel Blob URLs look like
+ * `https://{storeId}.public.blob.vercel-storage.com/{pathname}`.
  *
- * A validação de URL é o ponto cego mais caro desta tarefa: se a regex não
- * bater com o formato real, o sintoma vira "a foto sobe com sucesso para o
- * armazenamento, o registro é recusado, e o log só diz 'payload inválido'".
- * Por isso o `refine` abaixo sempre registra a URL recusada e o motivo antes
- * de devolver `false` — a mensagem devolvida ao convidado continua genérica.
+ * Pinned to our own store id: matching any `*.public.blob.vercel-storage.com`
+ * would let a hostile caller create their own store, upload anything under
+ * `photos/`, and register the URL here as if it were ours.
+ *
+ * Every rejection is logged with the offending URL — if this regex ever drifts
+ * from the real format, the only symptom is "upload succeeded, registration
+ * refused" and the guest-facing message stays generic.
  */
 const blobUrl = z
   .url()
@@ -111,15 +79,12 @@ const blobUrl = z
   )
 
 /**
- * O pathname existe para a Fase 5 apagar o blob (`del(pathname)`) quando o
- * admin excluir uma foto — um pathname escolhido por um chamador hostil
- * apagaria qualquer blob da store, não só fotos. Por isso exige o prefixo
- * `photos/` aqui e, no schema abaixo, que o pathname corresponda de fato à
- * URL do mesmo par (`pathnameMatchesUrl`) — o prefixo sozinho não impede um
- * pathname que aponte para outro blob real dentro de `photos/`; as duas
- * checagens juntas são necessárias. A checagem do prefixo é a mesma função
- * usada pela rota que assina o token (`lib/photos/pathname.ts`), para as
- * duas metades desta defesa não poderem divergir.
+ * The stored pathname is what `del(pathname)` will delete when the admin
+ * removes a photo, so a caller-chosen pathname could wipe any blob in the
+ * store. The prefix check alone doesn't stop a pathname pointing at a
+ * *different* blob under `photos/` — `pathnameMatchesUrl` below closes that.
+ *
+ * Same function as the token route uses, so the two halves can't drift.
  */
 const blobPathname = z
   .string()
@@ -135,12 +100,8 @@ const blobPathname = z
     { error: 'Caminho fora do armazenamento esperado.' }
   )
 
-/**
- * `pathname` (sem barra inicial) é sempre o final de `url` — é assim que o
- * SDK monta a URL (`constructBlobUrl`: host + "/" + pathname). Confirma que
- * quem chamou a action não mandou um pathname de um blob diferente do que a
- * URL aponta.
- */
+/** The SDK builds URLs as host + "/" + pathname, so the two must line up.
+ *  Confirms the caller didn't pair a URL with someone else's pathname. */
 function pathnameMatchesUrl(url: string, pathname: string): boolean {
   let actualPathname: string
   try {
@@ -185,12 +146,9 @@ export async function registerPhoto(input: unknown): Promise<RegisterPhotoResult
   }
 
   try {
-    // Replica o teto global da rota de upload (Task 3, mesma regra —
-    // `lib/photos/global-limit.ts`). Aquela rota só barra quem tenta *subir
-    // o arquivo*; esta action é alcançável direto por POST, sem passar pelo
-    // Blob. Sem esta checagem, um POST direto insere registros sem limite
-    // (payload pequeno, nenhum byte sobe) e derruba o teto para os
-    // convidados de verdade que ainda estão tentando enviar foto.
+    // The upload route enforces the same cap, but it only stops whoever
+    // uploads *bytes*. This action is reachable by direct POST, so without
+    // the check a tiny payload could fill the cap and lock out real guests.
     const total = await countPhotos()
 
     if (total >= getPhotosGlobalLimit()) {
@@ -204,7 +162,6 @@ export async function registerPhoto(input: unknown): Promise<RegisterPhotoResult
     return { ok: false, message: 'Não foi possível registrar a foto.' }
   }
 
-  // Mantém a galeria do admin (Fase 5) atualizada assim que uma foto entra.
   revalidatePath('/admin/fotos')
 
   return { ok: true }

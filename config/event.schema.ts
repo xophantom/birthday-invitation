@@ -7,7 +7,7 @@ export const eventConfigSchema = z.object({
     age: z.number().int().positive(),
   }),
   event: z.object({
-    /** ISO 8601 com offset. Ex.: 2026-12-11T19:00:00-03:00 */
+    /** ISO 8601 with offset, e.g. 2026-12-11T19:00:00-03:00 */
     startsAt: z.iso.datetime({ offset: true }),
     timeZone: z.string().min(1),
   }),
@@ -40,7 +40,7 @@ export const eventConfigSchema = z.object({
     poster: z.string().min(1),
   }),
   media: z.object({
-    /** null enquanto o arquivo não existir — a UI se adapta sozinha */
+    /** null while the file doesn't exist — the UI adapts on its own */
     openingVideo: z.string().nullable(),
     soundtrack: z.string().nullable(),
   }),

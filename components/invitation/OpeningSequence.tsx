@@ -27,9 +27,9 @@ export function OpeningSequence({
   const [showButton, setShowButton] = useState(false)
   const start = useMusicStore((state) => state.start)
   const prefersReducedMotion = useReducedMotion()
-  // Vídeo em tela cheia é justamente o gatilho vestibular que a preferência de
-  // movimento reduzido existe para evitar — cai na sequência animada mesmo
-  // com videoSrc configurado.
+  // A full-screen video is exactly the vestibular trigger the reduced-motion
+  // preference exists to avoid, so fall back to the animated sequence even
+  // when videoSrc is configured.
   const showVideo = Boolean(videoSrc) && !prefersReducedMotion
 
   useEffect(() => {

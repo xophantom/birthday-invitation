@@ -4,11 +4,10 @@ import { SectionShell } from '@/components/invitation/SectionShell'
 import { getEventConfig } from '@/lib/config'
 
 /**
- * `robots: { index: false }` porque o modelo de ameaça desta tela assume que
- * só chega aqui quem leu o QR Code impresso na mesa da festa: é um
- * formulário de upload público, sem login. Indexada, ela viraria alcançável
- * por busca — e a suposição em que todo o resto da defesa se apoia deixaria
- * de valer.
+ * `robots: { index: false }` because this screen's threat model assumes only
+ * people who scanned the printed QR code reach it — it is a public upload form
+ * with no login. Indexed, it would be reachable from search, and the
+ * assumption the rest of the defence rests on would stop holding.
  */
 export const metadata: Metadata = {
   title: 'Enviar fotos',

@@ -27,15 +27,10 @@ export function useRsvpForm() {
     try {
       result = await createRsvp(values)
     } catch (error) {
-      // A própria Server Action já captura falhas de gravação (Task 4) e o
-      // erro de banco (DATABASE_URL ausente etc.) só surge dentro daquele
-      // try/catch, já que a criação do cliente é preguiçosa (lib/db/index.ts).
-      // Este catch é defesa em profundidade para o que sobrar: falha de rede
-      // ao chamar a Server Action, erro inesperado antes dela retornar, etc.
-      // Sem isto, o React Hook Form relança o erro depois de zerar
-      // `isSubmitting` (silenciosamente, sem mexer no estado do formulário) e
-      // o convidado fica sem nenhum retorno visual de que a confirmação não
-      // foi salva.
+      // The Server Action already catches write failures, so this covers what
+      // is left: a network failure reaching it, or an error before it returns.
+      // Without it, React Hook Form rethrows after clearing `isSubmitting`,
+      // silently leaving the guest with no sign the RSVP wasn't saved.
       console.error('Falha ao chamar createRsvp:', error)
       setServerError(RSVP_SUBMIT_ERROR_MESSAGE)
       return

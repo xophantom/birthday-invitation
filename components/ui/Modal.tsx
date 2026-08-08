@@ -25,12 +25,10 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       aria-label={title}
       onClose={onClose}
       onClick={(event) => {
-        // O dialog não tem estilo próprio, então sua área É o backdrop:
-        // um clique cujo alvo é ele mesmo aconteceu fora do conteúdo.
-        // Fechamos o <dialog> nativamente em vez de chamar onClose aqui: o
-        // evento "close" disparado por close() é a única fonte de verdade,
-        // cobrindo backdrop, Esc e fechamento programático sem duplicar o
-        // callback nem disparar onClose quando o pai fecha por conta própria.
+        // The dialog is unstyled, so its own area IS the backdrop: a click
+        // targeting it happened outside the content. Closing natively rather
+        // than calling onClose keeps the "close" event as the single source of
+        // truth for backdrop, Esc and programmatic closes alike.
         if (event.target === ref.current) ref.current?.close()
       }}
       className="m-auto w-[min(92vw,64rem)] bg-transparent p-0 backdrop:bg-black/80"

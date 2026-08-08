@@ -9,7 +9,6 @@ export async function createPhotoRecord(input: NewPhoto): Promise<Photo> {
 }
 
 export async function countPhotos(): Promise<number> {
-  // `db.$count` devolve o número de linhas, não as linhas.
   const total = await db.$count(photos)
   return total
 }
@@ -21,17 +20,17 @@ export async function listPhotos({
   limit: number
   cursor?: string
 }): Promise<{ items: Photo[]; nextCursor: string | null }> {
-  // Valida cursor como UUID. Cursor inválido é ignorado e volta à primeira página.
+  // An invalid cursor is ignored, falling back to the first page.
   const isValidCursor = !cursor || UUID_PATTERN.test(cursor)
 
   if (!isValidCursor) {
     cursor = undefined
   }
 
-  // Comparação de tupla no Postgres: (createdAt, id) < (createdAt_cursor, id_cursor).
-  // Resolve a precisão de timestamp dentro do banco, onde microssegundos nunca são perdidos.
-  // Nota: se a linha do cursor foi apagada entre páginas, a subconsulta retorna vazio,
-  // a comparação fica NULL e a página sai vazia — comportamento aceito.
+  // Tuple comparison keeps timestamp precision inside Postgres, where
+  // microseconds are never lost. If the cursor row was deleted between pages
+  // the subquery is empty, the comparison is NULL and the page comes back
+  // empty — accepted behaviour.
   const cursorRow = cursor
     ? db
         .select({ createdAt: photos.createdAt, id: photos.id })
@@ -40,7 +39,7 @@ export async function listPhotos({
         .as('cursor_row')
     : undefined
 
-  // Busca um item a mais para saber se existe próxima página sem fazer count.
+  // One extra row tells us whether a next page exists, without a count query.
   const rows = await db
     .select()
     .from(photos)

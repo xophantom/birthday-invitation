@@ -35,7 +35,7 @@ export async function listRsvps(): Promise<Rsvp[]> {
 }
 
 export async function removeRsvp(id: string): Promise<void> {
-  // Soft delete: preserva o histórico de quem havia confirmado.
+  // Soft delete: keeps the history of who had confirmed.
   await db
     .update(rsvps)
     .set({ status: 'removed', updatedAt: new Date() })

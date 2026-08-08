@@ -4,12 +4,9 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
 
 /**
- * O plano original (Fase 6) só cria `error.tsx` em `(site)`. Sem este
- * arquivo, uma falha de banco numa tela do admin (Neon instável, por
- * exemplo) cairia na tela crua do Next em vez de uma UI consistente com o
- * resto do grupo. Deliberadamente sem `Ornament`: `(admin)` não usa a
- * moldura decorativa do convite em nenhuma outra tela (ver `login/page.tsx`
- * e `admin/page.tsx`), só o título em `font-display` e conteúdo centralizado.
+ * Without this, a DB failure on an admin screen would land on Next's raw error
+ * page. Deliberately no `Ornament`: no other `(admin)` screen uses the
+ * invitation's decorative frame.
  */
 export default function AdminError({
   error,

@@ -1,9 +1,9 @@
 /**
- * Único ponto de leitura da config do evento: valida a instância contra o
- * contrato de config/event.schema.ts antes de qualquer consumidor vê-la, e
- * cacheia o resultado. Nenhum componente importa config/event.config.ts
- * direto, então é aqui que uma config malformada estoura — e como as páginas
- * do convite são pré-renderizadas, ela estoura no build, não na festa.
+ * The only place the event config is read: validates it against
+ * `config/event.schema.ts` before any consumer sees it, then caches. No
+ * component imports `config/event.config.ts` directly, so a malformed config
+ * fails here — and since the pages are prerendered, that means at build time
+ * rather than during the party.
  */
 import { z } from 'zod'
 import { eventConfig } from '@/config/event.config'

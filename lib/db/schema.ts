@@ -44,18 +44,15 @@ export const photos = pgTable(
   (table) => [
     index('idx_photos_created_at').on(table.createdAt),
     /**
-     * Um mesmo blob só pode virar uma linha. `registerPhoto` é pública e sem
-     * autenticação (o convidado não faz login, por decisão de design) e não
-     * deduplica: com uma única URL válida da nossa store — obtível subindo
-     * uma foto de verdade pela própria UI — mil POSTs diretos preenchiam o
-     * teto global e derrubavam o envio para todos os convidados sem subir um
-     * byte. Recuperar disso exigiria apagar linhas ou trocar variável de
-     * ambiente e redeployar, às 23h, no meio da festa.
+     * One blob, one row. `registerPhoto` is public and unauthenticated (guests
+     * don't log in, by design) and doesn't deduplicate: with a single valid
+     * URL from our store, a thousand direct POSTs would fill the global cap
+     * and break uploads for everyone without transferring a byte. With this
+     * constraint, repeating the attack means pushing hundreds of MB over party
+     * wifi.
      *
-     * Com a constraint, repetir o ataque exige empurrar centenas de MB pelo
-     * wifi da festa. Nenhum envio legítimo colide: o token é assinado com
-     * `addRandomSuffix: true`, então o Blob acrescenta um sufixo aleatório
-     * a cada pathname.
+     * No legitimate upload collides: tokens are signed with
+     * `addRandomSuffix: true`.
      */
     uniqueIndex('uq_photos_full_pathname').on(table.fullPathname),
   ]

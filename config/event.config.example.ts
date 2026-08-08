@@ -1,11 +1,11 @@
 import type { EventConfig } from './event.schema'
 
 /**
- * Exemplo estrutural de config/event.config.ts, com dados fictícios — a
- * referência de forma para adaptar o convite a outro evento: copie este
- * arquivo sobre config/event.config.ts e preencha com os dados da festa.
- * Os dois são versionados; o README explica por que o real não pode ficar
- * fora do repositório (resumo: import estático quebra o build da Vercel).
+ * Shape reference for `config/event.config.ts`, with fictional data: copy this
+ * file over it and fill in the real party details.
+ *
+ * Both files are committed — the README explains why the real one can't live
+ * outside the repo (a static import breaks the Vercel build).
  */
 export const eventConfig: EventConfig = {
   celebrant: {

@@ -1,6 +1,6 @@
 /**
- * Reduz proporcionalmente para que o maior lado caiba em `maxSide`.
- * Imagens menores que o limite são preservadas — ampliar só adiciona peso sem detalhe.
+ * Scales down proportionally so the longest side fits `maxSide`. Images
+ * already below the limit are left alone — upscaling only adds weight.
  */
 export function computeTargetSize(
   width: number,

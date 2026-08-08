@@ -10,12 +10,10 @@ const inputClass =
   'min-h-11 w-full rounded-xl border border-accent/30 bg-surface-deep/60 px-4 text-foreground placeholder:text-foreground/40'
 
 /**
- * O `FormField` renderiza hint e erro com ids derivados do `htmlFor`
- * (`${htmlFor}-hint` e `${htmlFor}-error`) mas não controla o input — quem o
- * passa como children é responsável por apontar para eles. Os dois podem estar
- * visíveis ao mesmo tempo, então `aria-describedby` referencia ambos: escolher
- * só o erro deixaria a orientação de formato, que está na tela, muda para quem
- * usa leitor de tela.
+ * `FormField` renders hint and error with ids derived from `htmlFor` but does
+ * not own the input, so pointing at them is the caller's job. Both can be
+ * visible at once: listing only the error would leave on-screen guidance
+ * silent for screen reader users.
  */
 function describedBy(htmlFor: string, hasHint: boolean, hasError: boolean) {
   const ids = [hasHint && `${htmlFor}-hint`, hasError && `${htmlFor}-error`]
@@ -37,15 +35,9 @@ export function RsvpForm() {
   if (submitted) {
     return (
       <Card className="text-center">
-        {/*
-          Sem role/aria-live aqui: `role="status"` já implica
-          `aria-live="polite"` + `aria-atomic`, e o `useEffect` acima move o
-          foco para este mesmo nó — o leitor de tela acabava falando a
-          confirmação duas vezes, uma como região viva e outra ao receber o
-          foco. Mantemos só o gerenciamento de foco, que entrega o texto uma
-          vez e ainda deixa o convidado num ponto conhecido da página. Mesma
-          solução adotada em `/fotos` (app/(site)/fotos/PhotoUploader.tsx).
-        */}
+        {/* No role/aria-live: the effect above moves focus to this node, so a
+            live region would make the screen reader say it twice. Focus alone
+            delivers the text once and leaves the guest somewhere known. */}
         <div ref={successRef} tabIndex={-1} className="outline-none">
           <p className="font-display text-3xl text-accent-light">Presença confirmada!</p>
           <p className="mt-3 text-foreground/85">

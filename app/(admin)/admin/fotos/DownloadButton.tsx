@@ -8,10 +8,8 @@ import { Button } from '@/components/ui/Button'
 
 type DownloadEntry = { url: string; name: string }
 
-/**
- * Quantas fotos são buscadas em paralelo. Também é o teto de blobs de origem
- * vivos ao mesmo tempo: ~25 × 800KB ≈ 20MB.
- */
+/** Photos fetched in parallel, and therefore the cap on source blobs alive at
+ *  once: ~25 x 800KB = ~20MB. */
 const BATCH_SIZE = 25
 
 async function fetchEntry(entry: DownloadEntry) {
@@ -22,21 +20,14 @@ async function fetchEntry(entry: DownloadEntry) {
 }
 
 /**
- * Entrega as fotos ao `client-zip` lote a lote, em vez de montar o array
- * inteiro antes de compactar.
+ * Feeds photos to `client-zip` batch by batch instead of building the whole
+ * array up front. `downloadZip` consumes an async iterable on demand, writing
+ * each entry into the zip stream before asking for the next, so each batch
+ * goes out of scope and can be collected — the source side never grows past
+ * `BATCH_SIZE`.
  *
- * `downloadZip` aceita um `ForAwaitable` (`AsyncIterable | Iterable`) e
- * consome cada entrada sob demanda, gravando-a no stream do zip antes de
- * pedir a próxima — é o uso que o próprio README da biblioteca recomenda
- * para entradas buscadas por `fetch`. Como cada `batch` sai de escopo ao fim
- * da iteração, os blobs já escritos ficam sem referência e o coletor pode
- * liberá-los; o array de origem nunca cresce além de `BATCH_SIZE`.
- *
- * Antes desta mudança o array acumulava **todas** as fotos até o fim: no teto
- * de 1000 fotos a ~800KB, ~800MB de blobs de origem vivos ao mesmo tempo,
- * somados ao zip resultante. Como o `client-zip` armazena sem compressão, o
- * zip final continua tendo o tamanho da soma das fotos — o que esta mudança
- * elimina é a *segunda* cópia, não a primeira.
+ * At the 1000-photo cap that is the difference between ~20MB and ~800MB of
+ * source blobs held alongside the resulting zip.
  */
 async function* streamPhotoBlobs(
   entries: DownloadEntry[],
@@ -67,8 +58,8 @@ export function DownloadButton() {
         return
       }
 
-      // O progresso avança por lote, não por foto: com 1000 fotos, um
-      // setState por foto seriam 1000 renderizações só para mexer num texto.
+      // Progress advances per batch: one setState per photo would be 1000
+      // renders just to update a line of text.
       const blob = await downloadZip(
         streamPhotoBlobs(entries, (fetched) =>
           setProgress(
@@ -79,16 +70,10 @@ export function DownloadButton() {
         )
       ).blob()
 
-      // O texto muda, mas o botão continua desabilitado (`progress` segue
-      // não-nulo) até a promise abaixo resolver: só então o object URL do
-      // zip foi revogado e é seguro liberar um novo download. Dois toques
-      // seguidos criariam dois zips inteiros vivos ao mesmo tempo — no teto
-      // de 1000 fotos deste evento, quase 1,6GB, o bastante para matar a aba
-      // num celular. Zerar `progress` mais cedo (como antes) reabilitava o
-      // botão na hora, mesmo com o zip anterior ainda preso na memória pelos
-      // ~3s de folga do `triggerBlobDownload` (ver o comentário lá: é só o
-      // tempo do navegador *começar* a gravação, não do download inteiro
-      // terminar) — daí o texto abaixo não prometer mais que isso.
+      // The button stays disabled (`progress` non-null) until the promise
+      // below resolves and the zip's object URL is revoked. Two quick taps
+      // would hold two whole zips at once — near 1.6GB at this event's cap,
+      // enough to kill the tab on a phone.
       setProgress('Salvando o arquivo...')
       await triggerBlobDownload(blob, onlyFavorites ? 'fotos-favoritas.zip' : 'fotos-da-festa.zip')
 

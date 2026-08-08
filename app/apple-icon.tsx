@@ -6,7 +6,8 @@ import { getEventConfig } from '@/lib/config'
 export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
 
-/** Mesma razão de `app/icon.tsx`: sem `fonts` o monograma sai em sans-serif. */
+/** Same reason as `app/icon.tsx`: without `fonts` the monogram renders in a
+ *  sans-serif fallback. */
 export default async function AppleIcon() {
   const { celebrant, theme } = getEventConfig()
   const font = await readFile(

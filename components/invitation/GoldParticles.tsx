@@ -2,7 +2,7 @@ export function GoldParticles({ count = 28 }: { count?: number }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {Array.from({ length: count }, (_, index) => {
-        // Distribuição pseudoaleatória estável: mesmo resultado no servidor e no cliente.
+        // Stable pseudo-random spread: same result on server and client.
         const left = (index * 37) % 100
         const top = (index * 61) % 100
         const size = 2 + (index % 3)

@@ -3,9 +3,8 @@ type OrnamentProps = {
 }
 
 export function Ornament({ placement = 'divider' }: OrnamentProps) {
-  // 'top' e 'divider' renderizam de forma idêntica hoje. 'top' existe como
-  // variante própria para que o ornamento de cabeçalho possa divergir
-  // (tamanho, espaçamento etc.) no futuro sem quebrar quem já o consome.
+  // 'top' and 'divider' render identically today. 'top' exists as its own
+  // variant so the header ornament can diverge later without breaking callers.
   const rotation = placement === 'bottom' ? 'rotate-180' : ''
 
   return (

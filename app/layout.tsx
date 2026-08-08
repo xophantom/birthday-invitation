@@ -7,22 +7,17 @@ import './globals.css'
 const config = getEventConfig()
 
 /**
- * Base absoluta de `og:image` e afins.
+ * Absolute base for `og:image` and friends.
  *
- * `NEXT_PUBLIC_*` é inlinado no bundle em build time: se a variável não
- * existir no momento do build de produção, todo `og:image` sai apontando
- * para localhost e nenhuma prévia do WhatsApp carrega — e cadastrar a
- * variável depois não conserta sem um novo build. Por isso o degrau
- * intermediário: `VERCEL_PROJECT_PRODUCTION_URL` é injetada pela própria
- * Vercel e traz o domínio de produção sem `https://`. É a mesma variável que
- * o Next usa no fallback interno de `metadataBase`
- * (`lib/metadata/resolvers/resolve-url.js`, `getProductionDeploymentUrl`).
- * localhost fica só como último recurso, para o desenvolvimento local.
+ * `NEXT_PUBLIC_*` is inlined at build time, so if the variable is missing when
+ * production builds, every `og:image` points at localhost and no WhatsApp
+ * preview loads — and setting it afterwards fixes nothing without a rebuild.
+ * Hence the middle step: `VERCEL_PROJECT_PRODUCTION_URL` is injected by Vercel
+ * and is the same variable Next uses in its own `metadataBase` fallback.
  *
- * Os `||` (e não `??`) são deliberados: `.env.example` deixa
- * `NEXT_PUBLIC_SITE_URL=` sem valor, e uma variável declarada vazia chega
- * aqui como string vazia, não `undefined` — com `??` ela passaria pelo
- * fallback e `new URL('')` derrubaria o build inteiro.
+ * `||` rather than `??` is deliberate: `.env.example` declares
+ * `NEXT_PUBLIC_SITE_URL=` empty, which arrives as `''`, not `undefined` —
+ * `??` would let it through and `new URL('')` would break the build.
  */
 const metadataBase = new URL(
   process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, '') ||

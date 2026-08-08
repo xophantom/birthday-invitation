@@ -1,7 +1,7 @@
 import { config } from 'dotenv'
 
-// Mesma precedência que o Next.js aplica: .env.local vence, .env é o padrão.
-// dotenv não sobrescreve o que já está definido, então a ordem importa.
+// Same precedence Next.js applies: .env.local wins, .env is the default.
+// dotenv never overwrites what is already set, so the order matters.
 config({ path: '.env.local' })
 config({ path: '.env' })
 

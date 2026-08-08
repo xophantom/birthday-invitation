@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import type { Rsvp } from '@/lib/db'
 
-/**
- * `guestId` diz de qual convidado é a mensagem. Sem isso, uma falha ao
- * remover o convidado A ficaria pendurada no estado e reapareceria dentro do
- * modal do convidado B — um erro que não aconteceu, sobre a pessoa errada.
- */
+/** `guestId` scopes the message to one guest. Without it, a failure removing
+ *  guest A would linger in state and resurface inside guest B's modal. */
 type DeleteState = AdminActionResult & { guestId?: string }
 
 const initialState: DeleteState = { ok: true }
@@ -23,11 +20,10 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
     async (previous: DeleteState, formData: FormData): Promise<DeleteState> => {
       const result = await deleteRsvp(previous, formData)
 
-      // Fechar só depois do sucesso: se o Neon cair no wifi da festa, o modal
-      // fica aberto com a mensagem em vez de sumir fingindo que removeu.
-      // O `startTransition` é o que o doc do Next 16 pede para atualização de
-      // estado depois de um `await` — sem ele, o fechamento sai da transição e
-      // acontece um quadro antes de a tabela se atualizar.
+      // Close only on success, so a DB failure leaves the modal open with the
+      // message instead of pretending the guest was removed. `startTransition`
+      // is required for state updates after an `await`; without it the close
+      // lands a frame before the table refreshes.
       if (result.ok) startTransition(() => setConfirming(null))
 
       return { ...result, guestId: String(formData.get('id') ?? '') }
@@ -49,13 +45,10 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
     confirming && !state.ok && state.message && state.guestId === confirming.id
   )
 
-  // Esc e o clique no backdrop fecham o <dialog> nativamente (o Cancelar é o
-  // único caminho que o `disabled={pending}` alcança), então `confirming`
-  // pode já estar `null` quando a remoção falha, e o parágrafo de erro de
-  // dentro do modal — que depende de `confirming` — nunca chega a montar.
-  // Este aviso cobre exatamente essa lacuna: é o complemento de `showError`
-  // (`!showError`), então os dois nunca ficam visíveis ao mesmo tempo — um
-  // canal só de anúncio para leitor de tela por falha.
+  // Esc and backdrop clicks close the <dialog> natively, so `confirming` can
+  // already be null when the removal fails and the in-modal error paragraph
+  // never mounts. Being the complement of `showError`, the two are never
+  // visible at once.
   const showErrorOutsideModal = Boolean(!showError && !state.ok && state.message)
 
   return (
@@ -100,8 +93,8 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
                     </span>
                   </td>
                   <td className="py-3">
-                    {/* Abre a confirmação; não remove. O `aria-label` carrega o
-                        nome porque a tela tem um "Remover" por linha. */}
+                    {/* Opens the confirmation; does not remove. The name is in
+                        the `aria-label` because every row has a "Remover". */}
                     <button
                       type="button"
                       onClick={() => setConfirming(guest)}

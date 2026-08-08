@@ -8,12 +8,9 @@ export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 /**
- * Vira `og:image:alt` e chega assim a produção — com a idade escrita à mão
- * ele contradizia a promessa de whitelabel do README na primeira festa que
- * não fosse de 15 anos. `alt` é um export estático, avaliado no carregamento
- * do módulo, então a config precisa ser lida aqui fora (o mesmo que
- * `app/layout.tsx` já faz); `getEventConfig()` é memoizada, então a chamada
- * dentro do componente reaproveita este resultado.
+ * `alt` is a static export evaluated at module load, so the config has to be
+ * read out here rather than inside the component. `getEventConfig()` is
+ * memoized, so the call below reuses this result.
  */
 const { celebrant } = getEventConfig()
 export const alt = `Convite de aniversário de ${celebrant.name} — ${celebrant.age} anos`

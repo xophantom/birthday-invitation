@@ -6,11 +6,9 @@ import { requireAdmin } from '@/lib/auth/session'
 import { togglePhotoFavorite } from '@/lib/db/queries/photos'
 import { UUID_PATTERN } from '@/lib/validation/uuid'
 
-// `setFavorite` é uma Server Action, alcançável por POST direto: um `id`
-// fora do formato uuid faria o driver do Postgres lançar dentro da query, e
-// um `isFavorite` que não seja booleano (ex.: string vinda de um POST
-// manual) seguiria sem checagem de tipo em runtime até o `set` do Drizzle.
-// Validamos os dois antes de tocar o banco e devolvemos erro tratado.
+// Reachable by direct POST: a malformed uuid would make the Postgres driver
+// throw inside the query, and a non-boolean `isFavorite` would reach Drizzle's
+// `set` unchecked. Both are validated before touching the DB.
 export async function setFavorite(id: string, isFavorite: boolean): Promise<AdminActionResult> {
   await requireAdmin()
 

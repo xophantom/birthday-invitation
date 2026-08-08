@@ -7,10 +7,9 @@ export const size = { width: 64, height: 64 }
 export const contentType = 'image/png'
 
 /**
- * Sem `fonts`, o satori cai na Noto Sans que vem embutida no `next/og`: o
- * monograma sairia em sans-serif, e o `fontWeight: 700` seria ignorado por
- * não haver outro peso disponível. A mesma instância estática de peso 700 que
- * a OG image usa resolve os dois — é a serifa da marca e é o peso certo.
+ * Without `fonts`, satori falls back to the Noto Sans bundled with `next/og`:
+ * the monogram would render sans-serif and `fontWeight: 700` would be ignored
+ * for lack of another weight. The same 700 face the OG image loads fixes both.
  */
 export default async function Icon() {
   const { celebrant, theme } = getEventConfig()

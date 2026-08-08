@@ -6,12 +6,8 @@ import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
 import { usePhotoUpload, type UploadStatus } from '@/hooks/use-photo-upload'
 
-/**
- * Rótulo de cada estado possível de um item. Tipado como
- * `Record<UploadStatus, string>` — não `Record<string, string>` — para que
- * um estado novo adicionado a `UploadStatus` quebre o typecheck aqui em vez
- * de renderizar `undefined` em silêncio na lista de fotos.
- */
+/** Keyed by `UploadStatus` so a new status breaks the typecheck here instead
+ *  of silently rendering `undefined` in the list. */
 const statusLabel: Record<UploadStatus, string> = {
   pending: 'Na fila',
   compressing: 'Preparando...',
@@ -20,16 +16,9 @@ const statusLabel: Record<UploadStatus, string> = {
   error: 'Falhou',
 }
 
-/**
- * Aceita a foto quando o navegador diz que é imagem **ou** quando a extensão
- * é HEIC/HEIF. O `type` de um arquivo `.heic` chega vazio em vários
- * ambientes (Windows e alguns gerenciadores de arquivos não têm o mapeamento
- * MIME), e `hooks/use-image-compression.ts` já detecta HEIC pela extensão
- * justamente por isso — sem esta segunda checagem a UI recusaria, com
- * `"IMG_1234.HEIC" não é uma imagem.`, uma foto que a compressão sabe
- * converter. Continua recusando o que de fato não é imagem (PDF, vídeo,
- * documento).
- */
+/** Mirrors the HEIC extension check in `use-image-compression.ts`: `.heic`
+ *  files often have an empty `type`, and without this the UI would reject a
+ *  photo the compression step knows how to convert. */
 function isSupportedImage(file: File): boolean {
   return file.type.startsWith('image/') || /\.hei[cf]$/i.test(file.name)
 }
@@ -49,47 +38,31 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
   const fileInputRef = useRef<HTMLInputElement>(null)
   const successRef = useRef<HTMLDivElement>(null)
   const selectButtonRef = useRef<HTMLButtonElement>(null)
-  // true assim que a lista deixa de estar vazia; volta a false depois de
-  // devolver o foco ao seletor. Sem isto, o efeito abaixo focaria o seletor
-  // também no primeiro paint (items.length === 0 desde o início), roubando o
-  // foco da página sem nenhuma ação do convidado.
+  // Keeps the focus effect below from firing on first paint, when the list is
+  // empty because nothing has happened yet.
   const hadItemsRef = useRef(false)
   const { items, addFiles, uploadAll, retry, reset } = usePhotoUpload(name)
 
   const allDone = items.length > 0 && items.every((item) => item.status === 'done')
   const doneCount = items.filter((item) => item.status === 'done').length
   const errorCount = items.filter((item) => item.status === 'error').length
-  // Quantas fotos ainda precisam de ação — não `items.length`: `uploadAll`
-  // pula quem já está `done`, então depois de um envio parcial (algumas
-  // prontas, outras falhas) o rótulo do botão deve refletir só o que falta,
-  // não o total original.
+  // Not `items.length`: `uploadAll` skips items already `done`, so after a
+  // partial send the button should count only what is left.
   const pendingCount = items.length - doneCount
   /**
-   * Há um envio em voo agora — seja o laço sequencial de `handleSend`
-   * (coberto por `busy`), seja um "Tentar de novo" isolado disparado fora
-   * dele. Sem isso, depois de um "Enviar" parcial (algumas prontas, uma com
-   * erro) `busy` já volta a `false` assim que o laço termina, mas um retry
-   * manual da foto que falhou ainda está em andamento — e nada impedia
-   * tocar "Enviar" de novo nesse intervalo, o que chama `uploadAll` sobre a
-   * mesma foto que já está `uploading`, disparando um segundo envio
-   * concorrente dela (duplicando o par de blobs e a linha em `photos`). Os
-   * dois botões usam `busy || inFlight` para ficar desabilitados sempre que
-   * qualquer envio — em lote ou avulso — estiver em curso.
+   * Covers a standalone "retry", which `busy` does not: after a partial send
+   * `busy` is already false while the retried photo is still uploading, and
+   * pressing "Enviar" then would upload it a second time — duplicating both
+   * blobs and the `photos` row. Both buttons gate on `busy || inFlight`.
    */
   const inFlight = items.some(
     (item) => item.status === 'compressing' || item.status === 'uploading'
   )
 
   /**
-   * Região viva persistente (nunca desmontada) para o progresso do envio.
-   * `<ul>`/`<Card>` só existem depois que o convidado escolhe fotos, e uma
-   * região `aria-live` criada nesse momento não é garantida de ser
-   * reconhecida como "viva" por todo leitor de tela antes da primeira
-   * mudança de conteúdo. Este resumo textual, montado desde o primeiro
-   * paint e recalculado a cada render a partir de `items`, evita depender
-   * dessa garantia: qualquer leitor de tela que já registrou a região
-   * (presente desde sempre) ouve o resumo mudar. `aria-atomic` garante que a
-   * frase inteira seja lida, não só o trecho que mudou.
+   * Feeds a live region that is mounted from first paint and never unmounted.
+   * An `aria-live` region created at the same moment its text appears is not
+   * reliably announced by every screen reader.
    */
   const liveMessage =
     items.length === 0
@@ -107,14 +80,9 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
   }, [allDone])
 
   /**
-   * "Escolher outras fotos" e "Enviar mais fotos" chamam `reset()`, que
-   * desmonta o card atual e remonta o botão do seletor de arquivos. Sem
-   * gerenciamento de foco aqui, ele cai no `<body>` e quem navega por
-   * teclado ou leitor de tela precisa tabular do topo da página a cada
-   * volta ao seletor — o mesmo defeito documentado no fluxo de sucesso
-   * acima, só que dessa vez saindo de dentro da lista/card em vez de entrar
-   * nela. Só devolve o foco quando a lista *volta* a ficar vazia depois de
-   * ter tido itens (`hadItemsRef`), nunca no primeiro paint da página.
+   * `reset()` unmounts the card and remounts the file picker. Without this,
+   * focus falls to `<body>` and keyboard users tab from the top of the page
+   * every time they go back to the picker.
    */
   useEffect(() => {
     if (items.length > 0) {
@@ -129,9 +97,7 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
 
   function handleSelect(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
-    // Limpa o valor para que escolher os mesmos arquivos de novo (depois de
-    // um reset) dispare `onChange` de novo — o navegador não avisa se o
-    // `value` do input não mudar.
+    // Clear so picking the same files again still fires `onChange`.
     event.target.value = ''
     setInputError(null)
 
@@ -187,28 +153,13 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
       </FormField>
 
       {/*
-        Quem aciona o seletor de arquivos é o `<button>` visível abaixo, via
-        `fileInputRef.current.click()`. Um `<label>` estilizado (a forma
-        original) não é uma parada de Tab — só controles de formulário
-        recebem foco por teclado — então quem navega por teclado caía direto
-        no input invisível, sem nenhum indício de onde o foco estava. Com um
-        `<button>` de verdade, o alvo grande e visível é a própria parada de
-        Tab, e recebe o anel de foco global (`:focus-visible` em
-        app/globals.css).
+        Hidden with `sr-only`, never `display:none`: a programmatic `.click()`
+        on a `display:none` file input has a history of not opening the picker
+        in WebKit — and this screen is the party's only upload path, reached
+        from a printed QR code, with nobody around to debug it.
 
-        O input fica escondido com `sr-only` (`position:absolute` + clip),
-        **nunca com `display:none`**: `.click()` programático num
-        `<input type="file">` com `display:none` tem histórico de não abrir
-        o seletor no WebKit, e é por isso que MUI e react-dropzone usam um
-        input posicionado e transparente em vez de escondê-lo. Aqui isso não
-        é um detalhe de estilo — o QR Code da mesa leva a esta tela, então se
-        o seletor não abrir no Safari do iPhone o único caminho de envio da
-        festa está morto, e não haveria ninguém por perto para depurar.
-        `sr-only` mantém o elemento renderizado e elimina essa categoria de
-        risco; `tabIndex={-1}` e `aria-hidden` tiram do foco e da árvore de
-        acessibilidade o que `display:none` tirava antes — sem eles o input
-        viraria uma parada de Tab invisível, que é justamente o problema que
-        o `<button>` acima veio resolver.
+        `tabIndex={-1}` + `aria-hidden` keep the still-rendered input out of
+        the tab order; the visible `<button>` below is the real tab stop.
       */}
       <input
         ref={fileInputRef}
@@ -222,11 +173,9 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
       />
 
       {/*
-        Escondido assim que existem itens na lista: `addFiles` substitui a
-        lista inteira a cada seleção, então deixar o seletor visível depois
-        de escolher fotos (ou de já ter enviado algumas) deixaria uma nova
-        seleção apagar da tela o registro do que já foi enviado com sucesso.
-        O caminho de volta ao seletor é sempre "Enviar mais fotos" (reset).
+        Hidden once the list has items: `addFiles` replaces the whole list, so
+        a new selection would erase the record of what was already sent. The
+        way back to the picker is always `reset()`.
       */}
       {items.length === 0 && (
         <button
@@ -239,12 +188,9 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
             ✦
           </span>
           <span className="text-foreground">Toque para escolher as fotos</span>
-          {/*
-            Sem id/aria-describedby próprios: este texto é descendente do
-            botão, então já entra no nome acessível dele por composição
-            padrão da árvore de acessibilidade. Ligar aria-describedby ao
-            mesmo texto faria o leitor de tela anunciá-lo duas vezes.
-          */}
+          {/* No aria-describedby: as a descendant this text is already part
+              of the button's accessible name, and linking it would make the
+              screen reader say it twice. */}
           <span className="text-xs text-foreground/60">
             Até {maxPerUpload} por vez, {maxFileSizeMb}MB cada
           </span>
@@ -303,17 +249,8 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
 
       {allDone ? (
         <Card className="flex flex-col items-center gap-4 text-center">
-          {/*
-            Sem role/aria-live aqui: a região viva persistente lá em cima já
-            anuncia "Todas as fotos foram enviadas." no exato momento em que
-            `allDone` vira verdadeiro. Duplicar aria-live neste nó, que só
-            passa a existir *depois* desse momento, é o mesmo problema que o
-            comentário da região persistente aponta — uma região criada em
-            cima da hora não é garantia de anúncio — e ainda soma um terceiro
-            canal ao já formado por aquela região + o foco programático
-            abaixo. O foco entrega o texto uma vez e deixa o convidado no
-            controle certo.
-          */}
+          {/* No role/aria-live: the persistent live region already announces
+              this, and the focus move below delivers it a second time. */}
           <div ref={successRef} tabIndex={-1} className="outline-none">
             <p className="font-display text-2xl text-accent-light">Fotos enviadas. Obrigado!</p>
           </div>
@@ -327,17 +264,8 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
             <Button size="lg" onClick={handleSend} disabled={busy || inFlight}>
               {busy || inFlight ? 'Enviando...' : `Enviar ${pendingCount} foto(s)`}
             </Button>
-            {/*
-              Saída sempre disponível enquanto nada está em voo: sem isto, uma
-              foto com falha permanente (ex.: HEIC que a compressão não
-              decodifica) prendia o convidado neste estado para sempre —
-              `allDone` nunca fica verdadeiro, e sem este botão não havia
-              nenhum caminho de volta ao seletor além de recarregar a página.
-              O mesmo resolve o caso mais comum de "escolhi as fotos
-              erradas". Continua sendo uma escolha explícita do convidado
-              (nunca dispara sozinho por uma seleção acidental), o que é
-              exatamente o que a resolução 5 pediu.
-            */}
+            {/* Escape hatch: a permanently failing photo never lets `allDone`
+                turn true, so without this the only way out is a reload. */}
             {!busy && !inFlight && (
               <div className="flex flex-col items-center gap-1">
                 <Button variant="ghost" onClick={reset}>

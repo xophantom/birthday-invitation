@@ -1,19 +1,16 @@
 import { create } from 'zustand'
 
 type MusicState = {
-  /** Vira true no primeiro gesto do usuário — é o que destrava o áudio no navegador. */
+  /** True after the first user gesture — what unlocks audio in the browser. */
   hasStarted: boolean
   isMuted: boolean
   /**
-   * True enquanto a abertura animada cobre a tela.
+   * True while the animated opening covers the screen.
    *
-   * Mora aqui porque é o único canal que os dois lados já compartilham: a
-   * `InvitationExperience` (que sabe quando a abertura está em cena) e o
-   * `MusicPlayer` vivem em árvores irmãs — o player é renderizado por
-   * `app/(site)/layout.tsx`, fora do `<main>`. O `inert` que tira o conteúdo
-   * de trás da abertura do foco e da árvore de acessibilidade não alcança
-   * ele, e `z-index` não afeta ordem de tabulação: sem esta flag o botão de
-   * som continuava alcançável por `Tab`, invisível atrás de uma tela opaca.
+   * Lives here because it is the only channel the two sides share:
+   * `InvitationExperience` knows when the opening is on screen, but
+   * `MusicPlayer` renders from the group layout, outside `<main>`, where the
+   * `inert` guarding the content behind the opening can't reach it.
    */
   isOpeningVisible: boolean
   start: () => void

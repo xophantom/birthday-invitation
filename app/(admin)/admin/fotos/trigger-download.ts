@@ -1,39 +1,23 @@
 /**
- * Salva um `Blob` já pronto como arquivo, pela única via que funciona em
- * todos os navegadores-alvo: uma âncora com `download` apontando para um
- * object URL.
+ * Time the object URL is kept alive after the click. Revoking on the next line
+ * invalidates it before the transfer starts, and iOS Safari then cancels the
+ * download without any error.
  *
- * Dois detalhes que parecem supérfluos e não são:
- *
- * 1. A âncora é **anexada ao documento** antes do `click()`. Um elemento
- *    desconectado não dispara navegação em vários navegadores, e o clique
- *    vira um no-op silencioso — a tela volta ao estado ocioso como se o
- *    download tivesse acontecido.
- *
- * 2. `revokeObjectURL` roda **fora do caminho síncrono do clique**. Revogar
- *    na linha seguinte ao `click()` invalida o URL antes de a transferência
- *    começar; o Safari de iOS — exatamente o cenário "anfitrião no celular
- *    durante a festa" — cancela o download nesse caso, também sem erro. O
- *    atraso mantém o blob vivo até o navegador ter iniciado a gravação.
- *
- * O preço do item 2 é o blob permanecer alocado durante a janela de revogação;
- * é aceitável, já que o download em curso precisa dele de qualquer forma. A
- * promise devolvida resolve só quando essa janela fecha e o object URL já foi
- * revogado — é o sinal que o chamador usa para saber quando é seguro liberar
- * um novo download sem manter dois zips inteiros vivos ao mesmo tempo.
- *
- * O prazo é para o navegador **começar** a gravação, não para ela terminar:
- * o clique já entregou a âncora e o `href`, e a leitura do blob pelo Safari
- * arranca de forma assíncrona logo em seguida, tipicamente em poucos
- * frames — não há relação com o tamanho do arquivo, que só afeta quanto
- * tempo a gravação em si leva *depois* de começada, o que já não depende
- * mais do object URL estar vivo. 3s é folga generosa para essa largada
- * (ordens de magnitude acima do que qualquer *jank* de main thread
- * costuma custar) sem prender o anfitrião esperando um zip de centenas de
- * MB "terminar" — que pelo wifi da festa pode legitimamente levar muito
- * mais que isso.
+ * The window only has to cover the browser *starting* to read the blob (a few
+ * frames, unrelated to file size), so 3s is generous without making the host
+ * wait for a multi-hundred-MB zip to finish writing.
  */
 const REVOKE_DELAY_MS = 3_000
+
+/**
+ * Saves a ready `Blob` as a file. The returned promise resolves once the URL
+ * has been revoked, which is how the caller knows it is safe to start another
+ * download without keeping two whole zips in memory.
+ *
+ * The anchor is appended to the document before `click()`: in several browsers
+ * a disconnected element triggers no navigation and the click is a silent
+ * no-op.
+ */
 
 export function triggerBlobDownload(blob: Blob, fileName: string): Promise<void> {
   const href = URL.createObjectURL(blob)

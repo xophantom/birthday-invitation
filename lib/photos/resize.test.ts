@@ -32,10 +32,8 @@ describe('computeTargetSize', () => {
   })
 
   it('nunca devolve dimensão zero em proporção extrema', () => {
-    // Valor exato, não `>= 1`: o resultado é determinístico (ratio 0.004,
-    // `Math.round(1 * 0.004)` é 0 e o piso o eleva a 1) e uma afirmação
-    // frouxa deixaria passar qualquer regressão que devolvesse outro valor
-    // positivo — inaceitável num projeto com três testes no total.
+    // Exact value, not `>= 1`: the result is deterministic, and a loose
+    // assertion would pass on any regression returning another positive value.
     expect(computeTargetSize(1, 100000, THUMB_MAX_SIDE)).toEqual({ width: 1, height: 400 })
   })
 })

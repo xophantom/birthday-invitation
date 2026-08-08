@@ -11,15 +11,10 @@ export const metadata: Metadata = {
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'])
 
 /**
- * Uma URL só serve para o papel se apontar para o site publicado. Checar
- * apenas a ausência da variável não basta: o erro mais provável em produção
- * é o valor **errado**, não o ausente — um `http://localhost:3000` copiado
- * do ambiente local é truthy, deixaria o guarda calado, e o QR sairia
- * impresso apontando para a máquina de desenvolvimento. (O `.env.example`
- * deixa a variável vazia justamente para não plantar esse valor, mas o
- * guarda não pode depender disso.)
- *
- * URL que nem parseia recebe o mesmo tratamento: também não vira QR válido.
+ * Checking only for a missing variable isn't enough: the likelier production
+ * mistake is a *wrong* value. A `http://localhost:3000` copied from the local
+ * environment is truthy, would pass silently, and the printed QR code would
+ * point at a development machine. An unparseable URL fails the same way.
  */
 function pointsToDevelopment(url: string): boolean {
   try {
@@ -34,8 +29,8 @@ export default async function Page() {
 
   const config = getEventConfig()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-  // Barra final na variável viraria `https://exemplo.com//fotos` dentro do
-  // QR — e o que está impresso não tem conserto depois.
+  // A trailing slash would encode `https://example.com//fotos` — and what is
+  // already printed can't be fixed.
   const baseUrl = siteUrl?.replace(/\/+$/, '') || 'http://localhost:3000'
   const target = `${baseUrl}/fotos`
   const isUnsafeToPrint = !siteUrl || pointsToDevelopment(baseUrl)
@@ -44,11 +39,9 @@ export default async function Page() {
     width: 720,
     margin: 1,
     color: {
-      // Escuro de marca: mesmo tom de theme.colors.surfaceDeep, via config —
-      // não hex literal solto no componente.
       dark: config.theme.colors.surfaceDeep,
-      // Branco é a cor do papel impresso, não uma cor de marca: fica literal
-      // de propósito, sem passar pela config do evento.
+      // White is the colour of the paper, not a brand colour — literal on
+      // purpose, never read from the event config.
       light: '#FFFFFF',
     },
   })
@@ -56,13 +49,10 @@ export default async function Page() {
   return (
     <div className="flex flex-col items-center gap-6">
       {isUnsafeToPrint && (
-        // O QR acima aponta para desenvolvimento, e "imprimir mesmo assim"
-        // mata a coleta de fotos da festa inteira — o único caminho de envio
-        // é este QR na mesa. Continua visível na impressão de propósito:
-        // mesmo que o anfitrião pule a tela e mande direto para o Cmd+P, o
-        // aviso ainda sai no papel. Por isso os `print:` de alto contraste:
-        // navegador não imprime cor de fundo por padrão, então `text-danger`
-        // (salmão claro) sozinho sairia quase invisível no branco do papel.
+        // Printing anyway would kill photo collection for the whole party,
+        // since this QR code is the only upload path. Kept visible in print on
+        // purpose, with high-contrast `print:` overrides — browsers don't
+        // print background colours, so `text-danger` alone would be invisible.
         <p
           role="alert"
           className="w-full rounded-2xl border-2 border-danger bg-danger/10 p-4 text-center text-sm font-medium text-danger print:border-black print:bg-white print:text-black"

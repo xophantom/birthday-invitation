@@ -1,21 +1,17 @@
 @import "tailwindcss";
 
 /*
- * Convenção deste arquivo: estilos de base (body, foco, redução de
- * movimento) vivem em @layer base — no CSS Cascade 5, declarações fora de
- * qualquer layer formam a layer implícita final e vencem @layer utilities,
- * o que sobrescreveria classes do Tailwind como .rounded-full. A única
- * exceção são as custom properties de marca no :root abaixo; veja o motivo
- * no comentário daquele bloco.
+ * Convention: base styles go in @layer base. Under CSS Cascade 5, unlayered
+ * declarations form the final implicit layer and beat @layer utilities, which
+ * would override Tailwind classes like .rounded-full. The :root block below
+ * is the one deliberate exception.
  */
 
 :root {
   /*
-   * Fica FORA de qualquer @layer de propósito: app/global-error.tsx
-   * (Fase 6) renderiza o próprio <html> sem passar pelo RootLayout, então
-   * sem estes fallbacks a tela de erro perderia a paleta inteira. Uma
-   * declaração sem layer sempre vence as com layer, então isso é seguro.
-   * Não mova este bloco para @layer base.
+   * Deliberately unlayered: app/global-error.tsx renders its own <html>
+   * without the RootLayout, so without these fallbacks the error screen would
+   * lose the whole palette. Do not move this into @layer base.
    */
   --brand-surface: #0B2E1E;
   --brand-surface-deep: #071A11;
@@ -46,7 +42,7 @@
     font-family: var(--font-sans-family, system-ui), sans-serif;
   }
 
-  /* Foco visível e consistente em toda navegação por teclado. */
+  /* Consistent, visible focus ring across all keyboard navigation. */
   :focus-visible {
     outline: 2px solid var(--brand-accent-light);
     outline-offset: 3px;

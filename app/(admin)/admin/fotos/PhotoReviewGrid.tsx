@@ -9,15 +9,12 @@ import type { Photo } from '@/lib/db'
 import { sanitizeUploaderName } from '@/lib/photos/filename'
 
 /**
- * Fallback de download individual exigido pelo design: é a saída quando o zip
- * inteiro não é viável no aparelho — centenas de fotos num celular. Busca só
- * a foto aberta e a salva pelo mesmo caminho do lote.
+ * Single-photo fallback for when the full zip isn't viable on the device.
  *
- * Não é um `<a download>` apontando direto para o Blob: o atributo `download`
- * é ignorado em URL de outra origem, então o toque abriria a imagem numa aba
- * em vez de salvá-la. Buscar e criar um object URL da mesma origem faz o
- * `download` valer. Se a busca falhar, a mensagem oferece justamente aquele
- * caminho manual, em vez de deixar o anfitrião sem saída.
+ * Not an `<a download>` pointing at the Blob: the `download` attribute is
+ * ignored for cross-origin URLs, so the tap would open the image in a tab
+ * instead of saving it. Fetching into a same-origin object URL makes it work,
+ * and the failure message falls back to exactly that manual path.
  */
 function PhotoDownloadButton({ photo }: { photo: Photo }) {
   const [status, setStatus] = useState<'idle' | 'pending' | 'error'>('idle')
@@ -70,23 +67,20 @@ export function PhotoReviewGrid({ photos }: { photos: Photo[] }) {
   const [, startTransition] = useTransition()
 
   /**
-   * O estado guarda só o que este componente alterou; o resto vem das props.
+   * State holds only what this component changed; the rest comes from props.
    *
-   * "Carregar mais" é uma soft navigation para `/admin/fotos?cursor=…`: o
-   * componente é reconciliado na mesma posição da árvore e **não remonta**,
-   * então um `useState` inicializado a partir de `photos` continuaria com o
-   * mapa da primeira página para sempre. Toda foto da página 2 em diante cairia
-   * em `undefined` — estrela vazia numa foto favoritada, `aria-pressed` omitido
-   * (o botão perde a semântica de toggle) e, como `!undefined === true`, o
-   * primeiro toque regravaria `true` em vez de desfavoritar.
+   * "Load more" is a soft navigation, so the component is reconciled in place
+   * and never remounts — a `useState` seeded from `photos` would keep page
+   * one's map forever, leaving every later photo `undefined`: empty star on a
+   * favourited photo, no `aria-pressed`, and (since `!undefined === true`) a
+   * first tap that re-saves `true` instead of unfavouriting.
    */
   function isFavorite(photo: Photo): boolean {
     return favorites[photo.id] ?? photo.isFavorite
   }
 
-  // Otimista no toque, mas não mentiroso: se a Server Action devolver erro
-  // ou a chamada de rede falhar, a estrela volta ao estado anterior e o
-  // anfitrião vê um aviso — em vez de achar que salvou quando não salvou.
+  // Optimistic but not dishonest: on failure the star reverts and the host
+  // sees a warning, rather than believing a change was saved.
   function toggle(photo: Photo) {
     const next = !isFavorite(photo)
     setFavorites((current) => ({ ...current, [photo.id]: next }))
@@ -169,8 +163,8 @@ export function PhotoReviewGrid({ photos }: { photos: Photo[] }) {
             <figcaption className="flex flex-wrap items-center justify-between gap-3 text-sm text-foreground/70">
               <span>{opened.uploadedBy ?? 'Convidado não identificado'}</span>
               <div className="flex items-center gap-3">
-                {/* Chaveado pelo id: cada foto aberta começa com o botão limpo,
-                    sem herdar o "Baixando..." ou o erro da foto anterior. */}
+                {/* Keyed by id so each photo opens with a clean button,
+                    inheriting neither the pending nor the error state. */}
                 <PhotoDownloadButton key={opened.id} photo={opened} />
                 <button
                   type="button"

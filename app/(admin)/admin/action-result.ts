@@ -1,13 +1,9 @@
 /**
- * Formato de retorno de toda Server Action do admin que reporta resultado à
- * tela. `ok` decide o estilo da mensagem (sucesso ou erro) e se o formulário
- * pode se limpar; `message` é o texto em pt-BR mostrado ao anfitrião.
+ * Return shape of every admin Server Action that reports back to the screen.
+ * `ok` drives the message style and whether the form may clear itself.
  *
- * Mora num módulo comum, e não em cada `actions.ts`, porque um arquivo
- * `'use server'` só pode exportar funções assíncronas — um tipo compartilhado
- * ali funciona por acidente da apagação de tipos do TypeScript, não por
- * contrato. Antes desta leva havia duas declarações estruturalmente idênticas
- * (`AdminActionResult` e `SetFavoriteResult`), e a segunda não tinha
- * consumidor nenhum.
+ * In its own module rather than in an `actions.ts`, because a `'use server'`
+ * file may only export async functions — a type exported from one works by
+ * accident of type erasure, not by contract.
  */
 export type AdminActionResult = { ok: boolean; message?: string }

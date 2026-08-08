@@ -9,13 +9,11 @@ import { signSession, verifySessionToken } from './token'
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7
 
 /**
- * Tamanho mínimo exigido para cada segredo. `jose` assina e verifica HS256
- * sem reclamar de chaves curtas — não há checagem embutida na biblioteca —
- * então um `SESSION_SECRET` fraco (ex.: "123") funciona silenciosamente até
- * alguém capturar um cookie e quebrar o HMAC offline em segundos, passando a
- * forjar sessões admin para sempre. RFC 7518 §3.2 exige ao menos 256 bits
- * (32 bytes) para HS256. `ADMIN_PASSWORD` recebe um mínimo mais modesto, só
- * para barrar valores triviais de teste.
+ * `jose` signs and verifies HS256 without complaining about short keys, so a
+ * weak `SESSION_SECRET` works silently until someone captures a cookie and
+ * brute-forces the HMAC offline in seconds. RFC 7518 §3.2 requires at least
+ * 256 bits for HS256; `ADMIN_PASSWORD` gets a smaller minimum, just enough to
+ * reject trivial test values.
  */
 const MIN_ENV_LENGTH: Record<'ADMIN_PASSWORD' | 'SESSION_SECRET', number> = {
   ADMIN_PASSWORD: 16,
@@ -55,13 +53,11 @@ export async function createAdminSession(): Promise<void> {
 }
 
 /**
- * `isAdminAuthenticated` é memoizado por request via `cache()` do React: se
- * uma action chamar `destroyAdminSession()` e, no mesmo request, algo
- * chamar `requireAdmin()` em seguida, o valor memoizado ainda é `true` — o
- * cookie já foi apagado, mas a checagem não roda de novo até o próximo
- * request. Não há vazamento entre requests distintos. Por isso toda action
- * de logout deve terminar chamando `redirect()`, que encerra o request atual
- * e faz o próximo carregar com memoização limpa.
+ * `isAdminAuthenticated` is memoized per request, so calling this and then
+ * `requireAdmin()` in the same request still sees `true` — the cookie is gone
+ * but the check won't rerun. Nothing leaks across requests, but every sign-out
+ * action must end in `redirect()` so the next request starts memoization
+ * clean.
  */
 export async function destroyAdminSession(): Promise<void> {
   const cookieStore = await cookies()
@@ -75,10 +71,9 @@ export const isAdminAuthenticated = cache(async (): Promise<boolean> => {
   return verifySessionToken(token, requiredEnv('SESSION_SECRET'))
 })
 
-// Nunca chame `requireAdmin()` dentro de um try/catch: o redirect funciona
-// lançando `NEXT_REDIRECT`, uma exceção de controle de fluxo do Next. Um
-// catch ao redor a engoliria e o código seguiria em frente sem autenticação,
-// sem nenhum sinal em tempo de compilação.
+// Never call this inside a try/catch: the redirect works by throwing
+// `NEXT_REDIRECT`, so a surrounding catch would swallow it and let the code
+// continue unauthenticated, with no compile-time warning.
 export async function requireAdmin(): Promise<void> {
   const authenticated = await isAdminAuthenticated()
   if (!authenticated) redirect('/login')
