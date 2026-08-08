@@ -46,9 +46,15 @@ export function AddGuestForm() {
         viva no mesmo instante em que o texto aparece é o caso que a própria
         PhotoUploader documenta como não garantido em todo leitor de tela.
         Aqui a região existe desde o primeiro paint e só o texto muda depois.
+
+        O prefixo "Sucesso:"/"Erro:" é o mesmo do texto visível abaixo, e é
+        anunciado de propósito: a distinção entre os dois estados foi criada
+        justamente para quem não distingue as cores `text-highlight` e
+        `text-danger`, então anunciar a mensagem crua devolvia o problema
+        inteiro a quem usa leitor de tela.
       */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {state.message ?? ''}
+        {state.message ? `${state.ok ? 'Sucesso' : 'Erro'}: ${state.message}` : ''}
       </div>
 
       <h2 className="font-display text-xl text-accent-light">Adicionar confirmação</h2>
