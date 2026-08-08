@@ -10,12 +10,19 @@ Neon/Postgres via Drizzle · Vercel Blob
 
 ## Whitelabel
 
-Todo conteúdo específico do evento vive em `config/event.config.ts` — git-ignored, porque
-carrega nome, endereço e data reais —, validado por zod contra o contrato em
-`config/event.schema.ts`. Nenhum componente importa esse arquivo diretamente: todos passam
-por `getEventConfig()` (`lib/config.ts`). Para rodar o projeto localmente, copie
-`config/event.config.example.ts` para `config/event.config.ts` e preencha com dados
-fictícios ou os do seu próprio evento.
+Todo conteúdo específico do evento vive em `config/event.config.ts`, validado por zod contra o
+contrato em `config/event.schema.ts`. Nenhum componente importa esse arquivo diretamente:
+todos passam por `getEventConfig()` (`lib/config.ts`).
+
+**Esse arquivo é versionado, e é por isso que o convite é deployável.** A primeira versão o
+mantinha git-ignored, para não publicar nome, endereço e data reais — mas `lib/config.ts` o
+importa estaticamente, e import estático se resolve em build-time: a Vercel builda a partir do
+clone do git, então um arquivo ausente do repositório derruba o build com `Module not found`,
+sem chance de fallback em runtime. Como o convite é um site público — os mesmos dados aparecem
+na home, na página do local e na OG image —, mantê-los fora do repositório protegia pouco e
+custava o deploy. Se você for adaptar isto a um evento cujos dados não podem ser públicos,
+mantenha o repositório privado; esconder só este arquivo não é uma opção que funcione.
+`config/event.config.example.ts` fica como referência da forma esperada, com dados fictícios.
 
 Adaptar para outra festa: editar a config e trocar a arte em `public/poster.jpeg`. As cores
 de marca viram CSS custom properties (`--brand-*`), aplicadas inline no layout raiz a partir
@@ -126,7 +133,6 @@ npm test
 ```bash
 npm install
 cp .env.example .env
-cp config/event.config.example.ts config/event.config.ts   # preencha com os dados do evento
 npm run db:migrate
 npm run dev
 ```

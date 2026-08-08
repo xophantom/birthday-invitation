@@ -1,11 +1,11 @@
 import type { EventConfig } from './event.schema'
 
 /**
- * Exemplo estrutural de config/event.config.ts, com dados fictícios.
- * Para rodar o projeto localmente, copie este arquivo para
- * config/event.config.ts e preencha com os dados reais do evento — esse
- * arquivo é ignorado pelo git (ver .gitignore) porque carrega informação
- * pessoal do aniversariante.
+ * Exemplo estrutural de config/event.config.ts, com dados fictícios — a
+ * referência de forma para adaptar o convite a outro evento: copie este
+ * arquivo sobre config/event.config.ts e preencha com os dados da festa.
+ * Os dois são versionados; o README explica por que o real não pode ficar
+ * fora do repositório (resumo: import estático quebra o build da Vercel).
  */
 export const eventConfig: EventConfig = {
   celebrant: {

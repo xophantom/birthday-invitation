@@ -1,11 +1,9 @@
 /**
- * Se este import falhar com algo como "Module not found: Can't resolve
- * '@/config/event.config'", é porque config/event.config.ts não existe no
- * seu clone — ele carrega dados reais do evento e é ignorado pelo git (ver
- * .gitignore). Copie config/event.config.example.ts para
- * config/event.config.ts e preencha com os dados do seu evento. Não dá
- * para transformar isso num erro em runtime: import estático é resolvido
- * em build-time, antes de qualquer try/catch deste módulo rodar.
+ * Único ponto de leitura da config do evento: valida a instância contra o
+ * contrato de config/event.schema.ts antes de qualquer consumidor vê-la, e
+ * cacheia o resultado. Nenhum componente importa config/event.config.ts
+ * direto, então é aqui que uma config malformada estoura — e como as páginas
+ * do convite são pré-renderizadas, ela estoura no build, não na festa.
  */
 import { z } from 'zod'
 import { eventConfig } from '@/config/event.config'
