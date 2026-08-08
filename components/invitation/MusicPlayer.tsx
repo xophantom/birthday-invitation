@@ -7,6 +7,7 @@ export function MusicPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const hasStarted = useMusicStore((state) => state.hasStarted)
   const isMuted = useMusicStore((state) => state.isMuted)
+  const isOpeningVisible = useMusicStore((state) => state.isOpeningVisible)
   const start = useMusicStore((state) => state.start)
   const toggleMute = useMusicStore((state) => state.toggleMute)
 
@@ -39,6 +40,16 @@ export function MusicPlayer({ src }: { src: string }) {
     : isMuted
       ? 'Reativar música'
       : 'Silenciar música'
+
+  // Este componente é irmão do <main> do convite (vive no layout do grupo),
+  // então o `inert` que a InvitationExperience aplica enquanto a abertura
+  // está em cena não o alcança, e z-index nunca afetou ordem de tabulação:
+  // sem isto o botão continuava alcançável por `Tab` e presente na árvore de
+  // acessibilidade, invisível atrás de uma tela opaca. Sai inteiro de cena
+  // em vez de receber `inert` porque o <audio> tem `preload="none"` e nada
+  // toca antes do primeiro gesto — não há reprodução em curso para
+  // interromper. Assim que a abertura termina ele volta como sempre foi.
+  if (isOpeningVisible) return null
 
   return (
     <>

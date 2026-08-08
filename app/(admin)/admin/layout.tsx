@@ -10,15 +10,30 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <>
       <header className="flex items-center justify-between border-b border-accent/20 px-5 py-4">
         <nav className="flex gap-5 text-sm">
-          <Link href="/admin" className="text-accent-light hover:underline">
+          <Link
+            href="/admin"
+            className="inline-flex min-h-11 items-center text-accent-light hover:underline"
+          >
             Convidados
           </Link>
-          <Link href="/admin/fotos" className="text-accent-light hover:underline">
+          <Link
+            href="/admin/fotos"
+            className="inline-flex min-h-11 items-center text-accent-light hover:underline"
+          >
             Fotos
+          </Link>
+          <Link
+            href="/admin/qrcode"
+            className="inline-flex min-h-11 items-center text-accent-light hover:underline"
+          >
+            QR Code
           </Link>
         </nav>
         <form action={signOut}>
-          <button type="submit" className="text-sm text-foreground/70 hover:text-foreground">
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center text-sm text-foreground/70 hover:text-foreground"
+          >
             Sair
           </button>
         </form>

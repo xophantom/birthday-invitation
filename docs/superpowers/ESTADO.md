@@ -1,157 +1,121 @@
 # Estado do projeto — leia isto primeiro
 
-Ponto de entrada para retomar o trabalho numa sessão nova. Atualizado ao fim da Fase 5.
+**As seis fases estão completas.** O que falta não é código: é o deploy e a verificação em produção, que dependem da sua conta e dos dados reais do evento.
 
-**Branch:** `feat/admin` (repositório local, sem remote)
-**Progresso:** 5 de 6 fases completas
-**Estado da árvore:** limpa. `npm run typecheck`, `npm run lint`, `npm test` (15 testes) e `npm run build` passam.
+**Branch:** `feat/acabamento` (repositório local, sem remote)
+**Estado da árvore:** limpa. `npm run typecheck`, `npm run lint`, `npm test` (3 arquivos, 15 casos) e `npm run build` passam.
 
-## Como retomar
+## Antes do deploy — nesta ordem
 
-Abra uma sessão nova na raiz do projeto e diga o que quer fazer, por exemplo:
-
-> Retome o projeto do convite a partir da Fase 6. Leia `docs/superpowers/ESTADO.md` primeiro.
-
-O agente deve, nesta ordem:
-
-1. Ler este arquivo
-2. Ler `docs/superpowers/specs/2026-08-05-convite-design.md` (o design aprovado)
-3. Ler o plano da fase a executar em `docs/superpowers/plans/`
-4. Invocar a skill `superpowers:subagent-driven-development`, que foi o processo usado nas cinco primeiras fases
-
-Durante a execução, o ledger da fase vive em `.superpowers/sdd/<nome-do-plano>/progress.md`, que é git-ignored. **Ao fechar a fase, copie o ledger para `docs/superpowers/ledgers/` antes de apagar o workspace** — é onde ficam os das fases 1 a 5, e é o único registro detalhado que sobrevive. Este arquivo consolida só o que um agente precisa para retomar.
-
-## Duas pendências operacionais — antes de qualquer coisa
-
-**1. O login do admin está quebrado de propósito até você trocar as credenciais.** O `.env` tem `ADMIN_PASSWORD=admin` e `SESSION_SECRET=123`, valores de teste. A Fase 5 adicionou uma guarda de tamanho mínimo (16 e 32 caracteres) porque o `jose` assina feliz com chave de 3 bytes — e um HMAC-SHA256 com chave assim cai offline em segundos para quem capturar um cookie, passando a forjar sessões admin para sempre sem nunca precisar da senha. Rode:
+**1. Trocar as credenciais do admin.** O `.env` ainda tem `ADMIN_PASSWORD=admin` e `SESSION_SECRET=123`, valores de teste. O código agora exige 16 e 32 caracteres, então **o login está quebrado até você trocar** — isso é de propósito: o `jose` assina sem reclamar com chave de 3 bytes, e um HMAC-SHA256 assim cai offline em segundos para quem capturar um cookie, passando a forjar sessões de admin para sempre.
 
 ```
 openssl rand -base64 48   # → SESSION_SECRET
 openssl rand -base64 24   # → ADMIN_PASSWORD
 ```
 
-Guarde a senha num gerenciador. Com valor curto, o login mostra "Configuração de acesso indisponível." e o motivo real fica no log do servidor.
+Guarde a senha num gerenciador. Com valor curto, o login mostra "Configuração de acesso indisponível." e o motivo real fica no log.
 
-**2. A migração `drizzle/0001_daily_firebird.sql` continua sem ser aplicada.** Ela cria o índice único em `photos.full_pathname`, que impede alguém de encher o teto de armazenamento com POSTs repetidos na Server Action pública de fotos. Rode `npm run db:migrate`.
+**2. Cadastrar as variáveis na Vercel ANTES do build de produção.** `NEXT_PUBLIC_SITE_URL` é congelada em build time — cadastrar depois não conserta sem novo build. Ela vem **vazia** no `.env.example` de propósito: o valor `http://localhost:3000` que estava lá era o que transportava localhost para produção.
 
-## O que está pronto
+**3. Deployar.** `npx vercel`, cadastrar as variáveis, `npx vercel --prod`.
 
-| Fase | Entrega | Commits |
-|---|---|---|
-| 1 — Fundação | `EventConfig` tipada e validada, tema em tokens CSS, tipografia, cinco componentes de UI, grupos de rota `(site)` e `(admin)` | até `d8c8753` |
-| 2 — Convite | Abertura animada, pôster com data, menu, cinco seções, player de trilha | até `e7c86ca` |
-| 3 — RSVP | Neon + Drizzle, schema com migração aplicada, validação com teste, camada de queries, Server Action, formulário | até `d8d0b63` |
-| 4 — Fotos | Compressão no navegador, upload direto ao Blob, registro no banco, teto global, rota do QR Code | até `1bb155e` |
-| 5 — Admin | Sessão em JWT assinado, login, convidados com adição manual e soft delete, revisão de fotos com favoritas, download em zip | até `934a97f` |
+## Depois do deploy — em ordem de risco
 
-Rotas: `/`, `/manual`, `/presentes`, `/dress-code`, `/local`, `/confirmar`, `/fotos`, `/login`, `/admin`, `/admin/fotos`, o route handler `/api/photos/upload` e o `proxy.ts`.
+**1. `/admin/qrcode` logado, em produção, antes de imprimir qualquer folha.** Passa se o aviso vermelho **não** aparece e a linha "Aponta para" mostra o domínio real. É o único item cujo erro é irreversível: com a folha já na mesa da festa, um QR apontando para localhost mata a coleta de fotos inteira e não há conserto.
 
-## O que falta
+**2. Escanear o QR impresso com um celular em dados móveis** (não no mesmo wifi). Passa se abre `/fotos` no domínio real e o formulário aparece.
 
-**Fase 6 — Acabamento:** OG image, favicon e ícone de app, QR Code para impressão, revisão de acessibilidade, README, deploy.
+**3. Colar o link numa conversa real do WhatsApp.** Passa se o card aparece com a arte à esquerda e nome, data e local à direita. **Este é o teste que pode falhar:** a OG image tem 746 KB, e o limite prático relatado para prévia do WhatsApp fica em torno de 300 KB. Se não aparecer, o caminho é gerar o card uma vez, converter para JPEG (~120 KB a 85%), salvar em `public/og.jpg` e declarar `openGraph.images` no `app/layout.tsx`. Use `?v=2` na URL para furar o cache do WhatsApp.
 
-### Escopo que caiu no vão e precisa entrar na Fase 6
+**4. Abrir o seletor de fotos num iPhone real.** Se não abrir, o único caminho de envio da festa está morto.
 
-Encontrado nos reviews, exigido pelo design aprovado, e não previsto em nenhum plano:
+**5. Primeiro upload de ponta a ponta.** Passa se aparecem 2 arquivos no Blob, 1 linha em `photos`, e o log **não** contém `recusou uma URL fora do formato esperado`. Se falhar, cada foto vira 2 órfãos e 0 linhas, o teto nunca dispara porque conta linhas, e ninguém percebe até a festa acabar.
 
-- **`error.tsx` por segmento não existe em lugar nenhum.** O design é explícito: "erro não pode parecer tela do Next". Hoje qualquer falha de banco numa tela do admin mostra a tela crua do framework.
-- **`not-found.tsx` temático** também é exigido pelo design e não foi feito.
-- **O README precisa registrar o procedimento de revogação de emergência da sessão:** trocar `SESSION_SECRET` e redeployar. A mitigação existe, mas ninguém sabe dela às 23h.
-- O design mapeia `components/admin/{GuestTable,PhotoReviewGrid}`; eles ficaram em `app/(admin)/admin/`. Colocation defensável, mas é desvio não registrado — decida se normaliza ou documenta.
-- `lib/photos/pathname.ts:14-17` promete que o prefixo "torna seguro o `del(pathname)` que a Fase 5 vai usar" — a Fase 5 não tem exclusão de foto. Expectativa pendurada desde a Fase 4.
+**6. `/admin` em aba anônima.** Passa se vai para `/login`, e não para a tela de erro.
 
-## Verificação manual pendente
+**7. Sessão expirada no meio da ação.** Logado, apague o cookie `convite_admin` pelo DevTools e então adicione uma confirmação, toque uma estrela e clique "Baixar todas". Passa se os três levam a `/login` e nada é gravado.
 
-Nenhum teste automatizado cobre telas nem a pipeline de fotos: o projeto tem três testes no total, por decisão explícita do design, e eles cobrem lógica pura (schema de RSVP, cálculo de redimensionamento, assinatura de sessão).
+**8. Orientação EXIF.** Envie uma foto na vertical e outra deitado, e abra a URL full. Passa se as duas saem em pé.
 
-### Fase 5 — admin, em ordem de risco
+**9. HEIC de iPhone**, com "Alta eficiência" ligada. Passa se chega como JPEG.
 
-1. **Trocar as credenciais** (pendência 1 acima) e entrar em `/login`. Passa se a senha certa leva a `/admin` e a errada mostra "Senha incorreta." — e não "Configuração de acesso indisponível.", que denuncia segredo curto.
-2. **A porta, em aba anônima.** `/admin` e `/admin/fotos` sem sessão. Passa se ambas redirecionam para `/login` sem mostrar dado nenhum. Depois, autenticado, confirme que `/login` ainda abre — é a armadilha do route group.
-3. **Sessão expirada no meio da ação.** Logado, apague o cookie `convite_admin` pelo DevTools e então adicione uma confirmação, toque uma estrela e clique "Baixar todas". Passa se os três levam a `/login` e nada é gravado. É a prova de que as Server Actions não confiam no layout.
-4. **Download no celular que você vai usar na festa.** Com pelo menos 30 fotos, toque "Baixar todas". Passa se o `.zip` aparece de fato em Arquivos e abre com as fotos numeradas. Se o progresso terminar e nenhum arquivo aparecer, é a âncora; se a aba recarregar, é memória — nesse caso use o download individual do lightbox.
-5. **CORS do Vercel Blob.** É a premissa não verificada do download: o `fetch` cruza origem. Passa se o console não mostra erro de CORS durante o item 4.
-6. **Paginação das fotos.** Favorite uma foto da segunda página (`PAGE_SIZE = 60`) e clique "Carregar mais". Passa se ela aparece com estrela cheia.
-7. **Remoção de convidado.** Remova um RSVP e confira no `db:studio` que a linha continua com `status: 'removed'` e que os contadores caíram.
-8. **Lightbox e teclado.** Amplie, feche com `Esc`, com o backdrop e com o botão. Passa se os três fecham.
+**10. Download no celular que você vai usar na festa.** Com pelo menos 30 fotos, "Baixar todas". Passa se o `.zip` aparece em Arquivos e abre. Se a aba recarregar, é memória — use o download individual do lightbox.
 
-### Fase 4 — fotos, em ordem de risco
+**11. Falha e retentativa.** Modo avião no meio do envio. Passa se o item mostra a mensagem em pt-BR, o retry recupera, e ao final existe **uma** linha.
 
-1. **Abrir o seletor num iPhone real.** Se não abrir, o único caminho de envio da festa está morto.
-2. **Primeiro upload de ponta a ponta**, conferindo que a regex do store bate com a URL real. Passa se aparecem 2 arquivos no Blob, 1 linha em `photos`, e o log **não** contém `recusou uma URL fora do formato esperado`. Se falhar, cada foto vira 2 órfãos e 0 linhas, o teto nunca dispara porque conta linhas, e ninguém percebe até a festa acabar.
-3. **Orientação EXIF.** Envie uma foto na vertical e outra deitado, e abra a URL full. Passa se as duas saem em pé.
-4. **HEIC de iPhone**, com "Alta eficiência" ligada. Passa se chega como JPEG.
-5. **Falha e retentativa.** Modo avião no meio do envio. Passa se o item mostra a mensagem em pt-BR, o retry recupera, e ao final existe **uma** linha.
-6. **Limites.** 11 fotos, um PDF, um arquivo acima de 15MB — as três recusas antes de qualquer compressão.
-7. **Orçamento real.** Depois de ~10 fotos, divida os bytes do Blob pelo número de pares. Se ficar bem acima de ~840KB, `PHOTOS_GLOBAL_LIMIT=1000` não cabe em 1GB.
-8. **Onde olhar na noite.** Confirme que acha os logs da função na Vercel em menos de um minuto, pelo celular.
+**12. Orçamento real de armazenamento.** Depois de ~10 fotos, divida os bytes do Blob pelo número de pares. Se ficar bem acima de ~840KB, `PHOTOS_GLOBAL_LIMIT=1000` não cabe em 1GB.
 
-## Pendências abertas
+**13. Modal, teclado, `prefers-reduced-motion` e zoom a 200%.** Os únicos itens da varredura de acessibilidade que ninguém conseguiu testar interativamente — o modal exige login, e os outros dois exigem configuração do sistema.
 
-### Precisam de decisão sua
+**14. Onde olhar na noite.** Confirme que acha os logs da função na Vercel em menos de um minuto, pelo celular. É o único diagnóstico disponível durante o evento.
 
-**A arte traz o nome real escrito nela.** `public/poster.jpeg` tem o nome da aniversariante no banner. Todo o texto do repositório foi anonimizado, mas a imagem não. Se o repositório for público, o nome fica visível. Decisão natural para a Fase 6, junto do deploy.
+## Decisões suas que ficaram em aberto
+
+**A arte traz o nome real escrito nela.** `public/poster.jpeg` tem o nome da aniversariante no banner. Verifiquei que o nome, o local e o endereço reais aparecem em **zero** arquivos de texto versionados — os que aparecem no design e nos ledgers são os anonimizados. A imagem é o único vazamento. Se o repositório for público, o nome fica visível para quem abrir o arquivo.
 
 **`accept="image/*"` no seletor de fotos.** Acrescentar `.heic,.heif` faria a validação por extensão valer também no seletor. O revisor julgou que tokens de extensão só ampliam o filtro e não mudariam a oferta do Safari iOS, mas ninguém testou num iPhone.
 
-**Conteúdo de presentes.** `gifts.clothingSize`, `gifts.shoeSize` e `gifts.pixKey` estão `null`. A página omite os blocos vazios por design.
+**Conteúdo pendente, tudo uma linha na config:** `gifts.clothingSize`, `gifts.shoeSize`, `gifts.pixKey`, `media.soundtrack` e `media.openingVideo` continuam `null`. A interface se adapta sozinha.
 
-**Trilha e vídeo de abertura.** `media.soundtrack` e `media.openingVideo` são `null`. Salve os arquivos em `public/` e aponte a config.
+**Ao preencher `media.soundtrack`, teste a abertura num celular.** O botão de música fica escondido enquanto a abertura está em cena — foi corrigido na Fase 6 —, mas essa combinação nunca rodou com áudio real.
 
-### Trabalho técnico registrado
+## Dívida técnica registrada
 
-**Dois defeitos de uma linha na Fase 5, parkeados, que mordem no cenário "anfitrião no celular durante a festa":** o botão de download volta a ficar habilitado enquanto o object URL do zip anterior ainda segura o blob por 60s (dois toques mantêm dois zips vivos, ~1,6GB); e fechar o modal de remoção por `Esc` ou backdrop **durante** a remoção faz a mensagem de falha nunca aparecer.
+Nada aqui bloqueia o evento. Em ordem de quanto importa:
 
-**Órfãos no armazenamento não são auto-limitados, e o teto não os enxerga** porque conta linhas. Não há caminho de limpeza. A Fase 5 tem `list()` do Blob à mão via `@vercel/blob` — vale uma varredura que compare blobs com linhas.
+- **Órfãos no armazenamento não são auto-limitados, e o teto não os enxerga** porque conta linhas da tabela. Não há caminho de limpeza. Uma varredura que compare blobs com linhas resolveria — o `@vercel/blob` tem `list()`.
+- **`lib/db/index.ts` — o `.bind()` do Proxy descarta own properties de funções.** `db.$client.query(...)` estoura. Latente: nada usa o escape hatch de SQL cru.
+- **`isPhotosPathname` aceita `photos/../x`.** Não explorável na cadeia atual. Fechar custa `&& !value.includes('..')`.
+- **O guarda do QR Code cobre loopback, não IP de LAN** (`192.168.x.x`, `.local`). Exigiria alguém cadastrar um IP de rede local à mão no painel.
+- **`app/(site)/not-found.tsx` é inalcançável hoje** — `notFound()` não é chamado em lugar nenhum, e quem atende o 404 é o da raiz. Rede de segurança de quatro linhas.
+- **`npm test` imprime aviso do Vite** (`configLoader: 'native'`) porque `package.json` não tem `"type": "module"`. Mudar isso mexe na resolução de módulo do projeto inteiro.
 
-**`lib/db/index.ts:39` — o `.bind()` do Proxy descarta own properties de funções.** `db.$client.query(...)` estoura. Latente: nada usa o escape hatch de SQL cru.
+## Como o projeto foi construído
 
-**`isPhotosPathname` aceita `photos/../x`.** Não explorável na cadeia atual. Fechar custa `&& !value.includes('..')`.
+Seis fases, cada uma com plano em `docs/superpowers/plans/` e ledger em `docs/superpowers/ledgers/`. O design aprovado está em `docs/superpowers/specs/2026-08-05-convite-design.md`.
 
-**Acessibilidade para a varredura da Fase 6:** o `<p role="status">` do `AddGuestForm` é montado junto com o texto, caso que o próprio projeto documenta como não garantido; sucesso e erro se distinguem só pela cor; o botão de som (`z-50`) sobrepõe o "Pular" da abertura (`z-40`) em ~40×40px e vence o hit-test; `❧` (U+2767) tem cobertura irregular em Android; e "Escolher outras fotos" / "Enviar mais fotos" desmontam sem mover o foco.
+Os ledgers registram o que os reviews acharam e por que cada decisão foi tomada — inclusive as que contrariaram o plano. Se for retomar o projeto ou adaptá-lo a outro evento, eles valem mais que o código.
 
-**Aviso do Vite na suíte.** `npm test` imprime `configLoader: 'native'` porque `package.json` não tem `"type": "module"`. Mudar isso mexe na resolução de módulo do projeto inteiro.
+O processo foi `superpowers:subagent-driven-development`: um subagente implementa, outro revisa, um terceiro re-revisa a correção. As Fases 4 e 5 registram uma calibração de ritmo pedida no meio do caminho, e o custo dela — na Fase 5, os cinco achados Importantes do review final estavam todos nos grupos que pularam o review por tarefa.
 
-## Convenções que o projeto adotou
+## Convenções do projeto
 
-- **Whitelabel:** nenhum componente importa `config/event.config.ts` diretamente — sempre `getEventConfig()` de `lib/config.ts`.
-- **Cores de marca sempre em token.** Exceção: preto puro para sombra e escurecimento. Hex apenas em `app/globals.css` e na config.
-- **Sem TDD, três testes no projeto inteiro** — decisão explícita. Os três existem: schema de RSVP, cálculo de redimensionamento, assinatura de sessão. Não adicione.
-- **Toda página e toda Server Action do admin chama `requireAdmin()` como primeira instrução**, e **nunca dentro de `try/catch`** — ele funciona lançando o `NEXT_REDIRECT`, que um `catch` engoliria. A única exceção é `signOut`. O mesmo vale para `redirect()`.
-- **`(admin)` é route group e não gera segmento de URL.** `app/(admin)/layout.tsx` envolve **tanto** `/login` quanto `/admin` — `requireAdmin()` não pode ir nele.
+- **Whitelabel:** nenhum componente importa `config/event.config.ts` diretamente — sempre `getEventConfig()`.
+- **Cores de marca sempre em token.** Exceções: preto puro para sombra, o `ImageResponse` (que não enxerga Tailwind) e o `global-error.tsx` (que roda quando os tokens podem não existir).
+- **Sem TDD, três arquivos de teste no projeto inteiro** — decisão explícita. Cobrem lógica pura: schema de RSVP, cálculo de redimensionamento, assinatura de sessão.
+- **Toda página e toda Server Action do admin chama `requireAdmin()` como primeira instrução**, e **nunca dentro de `try/catch`** — ele funciona lançando o `NEXT_REDIRECT`. Única exceção: `signOut`.
+- **`(admin)` é route group e não gera segmento de URL.** `app/(admin)/layout.tsx` envolve **tanto** `/login` quanto `/admin`.
 - **Todo módulo de `lib/` que lê ambiente ou banco começa com `import 'server-only'`.**
-- **Toda Server Action que muta dados revalida a entrada no servidor** — são alcançáveis por POST direto. E se houver limite de recurso, ele precisa ser aplicado **também** na action, não só na rota que a UI chama.
-- **Estilos de base vão em `@layer base`.** Declarações fora de layer vencem `@layer utilities` no CSS moderno.
-- **Anúncio para leitor de tela: escolha um canal, não dois.** Ou região viva persistente montada **antes** da mudança, ou gerenciamento de foco. Empilhar `role="status"` no nó que recebe foco faz o leitor falar duas vezes.
-- **Contrato do `Modal`:** fecha pelo evento nativo `close` do `<dialog>`. Nunca chame `onClose` direto; mude o estado do pai.
-- **Contrato do `FormField`:** quem passa o input liga `aria-describedby` a `${htmlFor}-hint` e `${htmlFor}-error` e passa `aria-invalid`.
-- **Nada de `crypto.randomUUID()` em código de cliente** — não existe em contexto inseguro, e `http://192.168.x.x:3000` é como se testa no celular.
-- **Nenhum gate client-only pode ser dono do primeiro paint.**
-- **`sessionStorage` sempre em `try/catch`** — lança em webview com armazenamento bloqueado, que é como um link do WhatsApp abre.
-- **Alvos de toque de 44px.**
-- **Todo texto de interface em pt-BR**, com acentuação correta. **Commits em pt-BR**, formato `tipo: descrição`.
+- **Toda Server Action que muta dados revalida a entrada no servidor**, e limite de recurso vale **também** na action, não só na rota que a UI chama.
+- **Estilos de base vão em `@layer base`.**
+- **Anúncio para leitor de tela: um canal só** — região viva persistente montada antes da mudança, ou gerenciamento de foco. Nunca os dois no mesmo nó.
+- **Contrato do `Modal`:** fecha pelo evento nativo `close`. Nunca chame `onClose` direto.
+- **Contrato do `FormField`:** quem passa o input liga `aria-describedby` e `aria-invalid`.
+- **Nada de `crypto.randomUUID()` em código de cliente** — não existe em contexto inseguro.
+- **`sessionStorage` sempre em `try/catch`** — lança em webview com armazenamento bloqueado.
+- **Alvos de toque de 44px.** **Todo texto em pt-BR** acentuado. **Commits em pt-BR**, `tipo: descrição`.
 
-## Particularidades do stack já verificadas
+## Particularidades do stack, verificadas
 
-- `middleware.ts` não existe — o arquivo é `proxy.ts`, na raiz, e **não** é solução de autorização. O matcher `/admin/:path*` casa `/admin`, `/admin/` e `/admin/fotos`, e recusa `/adminx` (verificado compilando com o `path-to-regexp` interno do Next).
+- `middleware.ts` não existe — é `proxy.ts`, na raiz, e **não** é autorização.
 - `params` e `searchParams` são Promises; `cookies()` é assíncrono.
-- **O `next build` do 16 não imprime mais as colunas `Size` e `First Load JS`** — foram removidas de propósito. Uma saída sem elas não é uma saída editada.
-- `ImageResponse` suporta apenas flexbox — sem grid, e todo elemento com filhos precisa de `display: flex` explícito. **Relevante para a OG image da Fase 6.**
-- Tailwind v4 não tem `tailwind.config.js`; tokens em `@theme inline`. Gradientes são `bg-linear-to-*`.
-- **zod 4:** `z.string().url()` e `.email()` estão deprecados em favor de `z.url()`, `z.email()`.
-- **Drizzle:** `alias()` interpolado cru num template `sql\`\`` emite só o identificador do alias, sem a tabela base — a query quebra. Use `db.select(...).as('nome')`. Interpolar o subselect direto gera parênteses duplos, que o Postgres lê como subconsulta escalar.
-- **Timestamps do Drizzle chegam como `Date` do JS**, truncados em milissegundo, enquanto o Postgres guarda microssegundos. Cursor derivado desse `Date` perde linhas em silêncio.
-- **`@vercel/blob`:** declarar `onUploadCompleted`, mesmo vazio, faz o SDK derivar um `callbackUrl` e o serviço passar a fazer POST de volta por arquivo. E o SDK **descarta o corpo** de respostas não-ok da rota de token.
-- **`jose` não impõe tamanho mínimo de chave para HS256** — assina feliz com 3 bytes. A guarda é do nosso código.
-- **`client-zip` armazena sem compressão** (método STORE). O zip final tem o tamanho da soma das fotos.
-- **`useActionState` preserva os valores dos campos entre submissões** a menos que você controle uma chave de reset.
+- **O `next build` do 16 não imprime mais `Size`/`First Load JS`** — removidas de propósito.
+- **`ImageResponse` só suporta flexbox**, e todo elemento com mais de um filho precisa de `display: flex` explícito. Não enxerga `next/font` — a fonte é lida como arquivo, e precisa ser **estática**: o satori lida mal com fonte variável.
+- **Um `not-found.tsx` dentro de route group não captura URL inexistente** — só `notFound()` chamado naquele grupo. URL sem rota cai no `app/not-found.tsx` raiz.
+- **`NEXT_PUBLIC_*` é congelada em build time.** E variável declarada vazia no `.env` chega como string vazia, não `undefined` — `??` não a captura, `||` sim. `new URL('')` lança.
+- **zod 4:** `z.string().url()` e `.email()` estão deprecados.
+- **Drizzle:** `alias()` interpolado cru num template `sql` emite só o identificador, sem a tabela base. Use `db.select(...).as('nome')`. Timestamps chegam como `Date` truncado em milissegundo enquanto o Postgres guarda microssegundos.
+- **`@vercel/blob`:** declarar `onUploadCompleted`, mesmo vazio, faz o serviço postar de volta por arquivo. E o SDK descarta o corpo de respostas não-ok.
+- **`jose` não impõe tamanho mínimo de chave para HS256.**
+- **`client-zip` armazena sem compressão.**
+- **`useActionState` preserva os valores dos campos** entre submissões sem uma chave de reset.
+- **React 19 trata `inert` como booleano de verdade** — `inert={false}` remove o atributo, ao contrário do React 18.
 
 ## Ambiente
 
-`.env` (git-ignored) precisa de `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `ADMIN_PASSWORD` (≥16 caracteres) e `SESSION_SECRET` (≥32). Veja `.env.example`, que documenta os mínimos e os comandos de geração.
+`.env` (git-ignored) precisa de `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `ADMIN_PASSWORD` (≥16), `SESSION_SECRET` (≥32), `NEXT_PUBLIC_SITE_URL` e `PHOTOS_GLOBAL_LIMIT`. Veja `.env.example`, que documenta os mínimos e os comandos de geração.
 
-**Confirme que `PHOTOS_GLOBAL_LIMIT` está setada no ambiente da Vercel.** Ausente, cai em 1000 sem aviso — que é o valor desejado, mas por acidente.
+**Revogação de emergência da sessão:** a sessão é stateless por decisão de design, então não há revogação por banco. Se um cookie vazar, troque `SESSION_SECRET` e redeploye — todos os tokens existentes deixam de valer.
 
-`drizzle.config.ts` lê `.env.local` e `.env`, nessa ordem de precedência.
-
-`config/event.config.ts` é git-ignored e contém os dados reais do evento. O versionado é `config/event.config.example.ts`.
+`config/event.config.ts` é git-ignored e contém os dados reais. O versionado é `config/event.config.example.ts`.

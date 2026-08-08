@@ -48,6 +48,12 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
   const [busy, setBusy] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const successRef = useRef<HTMLDivElement>(null)
+  const selectButtonRef = useRef<HTMLButtonElement>(null)
+  // true assim que a lista deixa de estar vazia; volta a false depois de
+  // devolver o foco ao seletor. Sem isto, o efeito abaixo focaria o seletor
+  // também no primeiro paint (items.length === 0 desde o início), roubando o
+  // foco da página sem nenhuma ação do convidado.
+  const hadItemsRef = useRef(false)
   const { items, addFiles, uploadAll, retry, reset } = usePhotoUpload(name)
 
   const allDone = items.length > 0 && items.every((item) => item.status === 'done')
@@ -99,6 +105,27 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
       successRef.current?.focus()
     }
   }, [allDone])
+
+  /**
+   * "Escolher outras fotos" e "Enviar mais fotos" chamam `reset()`, que
+   * desmonta o card atual e remonta o botão do seletor de arquivos. Sem
+   * gerenciamento de foco aqui, ele cai no `<body>` e quem navega por
+   * teclado ou leitor de tela precisa tabular do topo da página a cada
+   * volta ao seletor — o mesmo defeito documentado no fluxo de sucesso
+   * acima, só que dessa vez saindo de dentro da lista/card em vez de entrar
+   * nela. Só devolve o foco quando a lista *volta* a ficar vazia depois de
+   * ter tido itens (`hadItemsRef`), nunca no primeiro paint da página.
+   */
+  useEffect(() => {
+    if (items.length > 0) {
+      hadItemsRef.current = true
+      return
+    }
+    if (hadItemsRef.current) {
+      selectButtonRef.current?.focus()
+      hadItemsRef.current = false
+    }
+  }, [items.length])
 
   function handleSelect(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -203,6 +230,7 @@ export function PhotoUploader({ maxPerUpload, maxFileSizeMb }: PhotoUploaderProp
       */}
       {items.length === 0 && (
         <button
+          ref={selectButtonRef}
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="flex min-h-30 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-accent/40 px-6 text-center transition-colors hover:border-accent"

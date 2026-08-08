@@ -27,7 +27,7 @@ export function PosterHero({ poster, celebrantName, date }: PosterHeroProps) {
         />
 
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-6 pb-8 text-center">
-          <p className="font-sans text-xs uppercase tracking-[0.35em] text-accent">
+          <p className="font-sans text-xs uppercase tracking-[0.35em] text-foreground">
             {date.weekday}
           </p>
           <p className="font-display text-4xl text-accent-light">

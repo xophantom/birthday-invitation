@@ -39,7 +39,7 @@ export default function Page() {
               {gifts.preferences.map((preference) => (
                 <li key={preference} className="flex items-start gap-3 text-foreground/90">
                   <span aria-hidden className="mt-1 text-accent">
-                    ❧
+                    ✦
                   </span>
                   <span>{preference}</span>
                 </li>
