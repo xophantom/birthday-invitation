@@ -119,7 +119,7 @@ npm run dev
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob |
 | `ADMIN_PASSWORD` | Senha do `/admin` — mínimo de 16 caracteres. Gere com `openssl rand -base64 24` |
 | `SESSION_SECRET` | Chave HMAC do cookie de sessão — mínimo de 32 caracteres. Gere com `openssl rand -base64 48` |
-| `NEXT_PUBLIC_SITE_URL` | Base da OG image e do QR Code |
+| `NEXT_PUBLIC_SITE_URL` | Base da OG image e do QR Code. Pode ficar vazia em desenvolvimento; **em produção precisa ser o domínio real, sem barra no final**. Vazia ou apontando para localhost, `/admin/qrcode` mostra um aviso que também sai no papel |
 | `PHOTOS_GLOBAL_LIMIT` | Teto de fotos armazenadas (default 1000 ≈ 840MB, com margem sobre o 1GB do plano Hobby) |
 
 Os mínimos de `ADMIN_PASSWORD` e `SESSION_SECRET` existem porque a biblioteca `jose` assina e

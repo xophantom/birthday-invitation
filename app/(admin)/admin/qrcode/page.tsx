@@ -8,12 +8,37 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'])
+
+/**
+ * Uma URL só serve para o papel se apontar para o site publicado. Checar
+ * apenas a ausência da variável não basta: o erro mais provável em produção
+ * é o valor **errado**, não o ausente — um `http://localhost:3000` copiado
+ * do ambiente local é truthy, deixaria o guarda calado, e o QR sairia
+ * impresso apontando para a máquina de desenvolvimento. (O `.env.example`
+ * deixa a variável vazia justamente para não plantar esse valor, mas o
+ * guarda não pode depender disso.)
+ *
+ * URL que nem parseia recebe o mesmo tratamento: também não vira QR válido.
+ */
+function pointsToDevelopment(url: string): boolean {
+  try {
+    return LOCAL_HOSTNAMES.has(new URL(url).hostname)
+  } catch {
+    return true
+  }
+}
+
 export default async function Page() {
   await requireAdmin()
 
   const config = getEventConfig()
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  const target = `${siteUrl ?? 'http://localhost:3000'}/fotos`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+  // Barra final na variável viraria `https://exemplo.com//fotos` dentro do
+  // QR — e o que está impresso não tem conserto depois.
+  const baseUrl = siteUrl?.replace(/\/+$/, '') || 'http://localhost:3000'
+  const target = `${baseUrl}/fotos`
+  const isUnsafeToPrint = !siteUrl || pointsToDevelopment(baseUrl)
 
   const dataUrl = await QRCode.toDataURL(target, {
     width: 720,
@@ -30,19 +55,24 @@ export default async function Page() {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {!siteUrl && (
-        // NEXT_PUBLIC_SITE_URL ausente: o QR acima aponta para localhost, e
-        // "imprimir mesmo assim" mata a coleta de fotos da festa inteira —
-        // o único caminho de envio é este QR na mesa. Continua visível na
-        // impressão de propósito: mesmo que o anfitrião pule a tela e mande
-        // direto para o Cmd+P, o aviso ainda sai no papel.
+      {isUnsafeToPrint && (
+        // O QR acima aponta para desenvolvimento, e "imprimir mesmo assim"
+        // mata a coleta de fotos da festa inteira — o único caminho de envio
+        // é este QR na mesa. Continua visível na impressão de propósito:
+        // mesmo que o anfitrião pule a tela e mande direto para o Cmd+P, o
+        // aviso ainda sai no papel. Por isso os `print:` de alto contraste:
+        // navegador não imprime cor de fundo por padrão, então `text-danger`
+        // (salmão claro) sozinho sairia quase invisível no branco do papel.
         <p
           role="alert"
-          className="w-full rounded-2xl border-2 border-danger bg-danger/10 p-4 text-center text-sm font-medium text-danger"
+          className="w-full rounded-2xl border-2 border-danger bg-danger/10 p-4 text-center text-sm font-medium text-danger print:border-black print:bg-white print:text-black"
         >
-          NEXT_PUBLIC_SITE_URL não está configurada. Este QR Code aponta para{' '}
-          {target}, não para o site publicado — não imprima antes de corrigir a
-          variável de ambiente.
+          NEXT_PUBLIC_SITE_URL{' '}
+          {siteUrl
+            ? 'aponta para o ambiente de desenvolvimento'
+            : 'não está configurada'}
+          . Este QR Code leva a {target}, não ao site publicado — não imprima
+          antes de corrigir a variável de ambiente.
         </p>
       )}
 
