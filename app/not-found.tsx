@@ -1,4 +1,14 @@
+import type { Metadata } from 'next'
 import { NotFoundContent } from '@/components/errors/NotFoundContent'
+
+/**
+ * Sem isto o 404 herdava o `title.default` do layout raiz e se anunciava como
+ * se fosse o convite. O template `%s · Nome` do layout continua valendo, então
+ * a aba vira "Página não encontrada · Nome".
+ */
+export const metadata: Metadata = {
+  title: 'Página não encontrada',
+}
 
 /**
  * Cobre URLs que não casam rota nenhuma (ex.: /rota-que-nao-existe). Com dois
