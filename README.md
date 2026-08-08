@@ -35,7 +35,7 @@ armazenamento antes de autorizar o envio.
 dispara em localhost sem túnel, o que inviabilizaria o desenvolvimento, e chega por arquivo —
 quebrando o pareamento full+thumbnail, que só existe depois que os dois blobs sobem.
 
-**Compressão própria em duas versões, no navegador — sem biblioteca de terceiros e sem Web
+**Compressão própria em duas versões, no navegador — sem biblioteca de compressão e sem Web
 Worker dedicado.** Full em 2048px e thumbnail em 400px, via `createImageBitmap` + canvas +
 `toBlob` (`hooks/use-image-compression.ts`). O cálculo de redimensionamento
 (`lib/photos/resize.ts`) é uma função pura coberta por teste, e é o próprio código do projeto
@@ -44,6 +44,24 @@ porque `createImageBitmap` já decodifica fora da thread principal e `toBlob` é
 que sobra na thread principal é só o `drawImage`, pequeno o bastante para não travar a
 interface. O grid de revisão do admin carrega os thumbnails; a versão full só é buscada ao
 ampliar a foto.
+
+**HEIC convertido no navegador, com o Safari como plano B.** O público desta festa é
+majoritariamente iPhone, e o padrão da câmera do iPhone é HEIC — formato que nem
+`createImageBitmap` nem a maioria dos navegadores decodifica. `heic2any` é a única dependência
+de runtime deste pipeline, carregada sob demanda (`await import`) porque é pesada e a maior
+parte dos envios não precisa dela. A detecção olha tipo MIME **e** extensão: o `type` de um
+`.heic` chega vazio em vários ambientes, e confiar só nele deixaria passar direto para a
+decodificação um arquivo que precisa de conversão.
+
+O interessante é o que acontece quando a conversão falha. A `heic2any` instalada é a 0.0.4 e
+engasga em variantes reais (HDR, 10-bit, HEIC com múltiplas imagens). Nesse caso o código
+**devolve o arquivo original em vez de encerrar** — o Safari decodifica HEIC nativamente,
+então o caminho alternativo de decodificação (`<img>` + `.decode()`, que existe por outro
+motivo: engines antigas que rejeitam `imageOrientation: 'from-image'`) ainda tem chance de
+abrir o mesmo arquivo que a biblioteca não abriu. Justamente no aparelho onde o formato é mais
+provável, o navegador é a rede de segurança. A mensagem de erro específica de HEIC não se
+perde: ela só deixa de ser lançada cedo demais, e volta a ser lançada se a decodificação
+nativa também falhar.
 
 **`<img>` para as fotos do Blob, `next/image` para os assets do convite.** As miniaturas já
 saem prontas em ~40KB do navegador do convidado; reprocessá-las gastaria transformações pagas
@@ -90,8 +108,8 @@ precisa entrar de novo. Não existe outro procedimento de emergência.
 
 ## Testes
 
-Três testes, deliberadamente — o projeto é de escopo pequeno e prazo curto, e a cobertura se
-concentra em lógica pura, onde uma falha é silenciosa e cara:
+Três arquivos de teste, 15 casos, deliberadamente — o projeto é de escopo pequeno e prazo
+curto, e a cobertura se concentra em lógica pura, onde uma falha é silenciosa e cara:
 
 - `lib/auth/token.test.ts` — assinatura e verificação do token de sessão
 - `lib/validation/rsvp.test.ts` — validação do schema de RSVP nos limites (nome vazio,
