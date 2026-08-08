@@ -5,6 +5,7 @@ import { MenuGrid } from '@/components/invitation/MenuGrid'
 import { OpeningSequence } from '@/components/invitation/OpeningSequence'
 import { PosterHero } from '@/components/invitation/PosterHero'
 import type { EventDateParts } from '@/lib/date'
+import { useMusicStore } from '@/stores/music-store'
 
 const SEEN_KEY = 'convite:abertura-vista'
 
@@ -33,6 +34,11 @@ export function InvitationExperience({
 }: InvitationExperienceProps) {
   const mainRef = useRef<HTMLElement>(null)
   const [showOpening, setShowOpening] = useState(false)
+  // O botão de música vive em app/(site)/layout.tsx, irmão do <main> — o
+  // `inert` abaixo não o alcança. Este é o canal que avisa o `MusicPlayer`
+  // para sair de cena enquanto a abertura durar. Continua sendo `showOpening`
+  // quem manda no que esta árvore renderiza; a store só espelha.
+  const setOpeningVisible = useMusicStore((state) => state.setOpeningVisible)
   // true assim que a abertura é exibida; volta a false depois de devolver o
   // foco ao <main>. Guarda o efeito abaixo para só agir numa transição real
   // de "mostrando" para "escondida" — nunca no primeiro paint, quando
@@ -41,20 +47,34 @@ export function InvitationExperience({
 
   useEffect(() => {
     if (seenThisSession) return
+
+    let shouldShow: boolean
     try {
       // sessionStorage só existe no cliente — ler no corpo do componente
       // quebraria a hidratação. Isto é sincronização com um sistema externo
       // (a API de armazenamento do navegador), o caso que a regra documenta
       // como exceção; não há como mover esta leitura para fora do efeito.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (sessionStorage.getItem(SEEN_KEY) !== '1') setShowOpening(true)
+      shouldShow = sessionStorage.getItem(SEEN_KEY) !== '1'
     } catch {
       // Armazenamento indisponível: sem como confirmar "já visto", então
       // mostramos a abertura. A flag em memória evita repeti-la a cada volta
       // ao menu dentro desta mesma sessão.
-      setShowOpening(true)
+      shouldShow = true
     }
-  }, [])
+    if (!shouldShow) return
+
+    // Os dois no mesmo lugar de propósito: mostrar a abertura e esconder o
+    // botão de música acontecem no mesmo commit, sem um quadro intermediário
+    // em que o botão ainda esteja focável por trás da tela opaca.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShowOpening(true)
+    setOpeningVisible(true)
+  }, [setOpeningVisible])
+
+  // Rede de segurança para desmontagem com a abertura ainda em cena: a flag
+  // vive numa store global, então deixá-la ligada esconderia o botão de
+  // música pelo resto da sessão.
+  useEffect(() => () => setOpeningVisible(false), [setOpeningVisible])
 
   function handleFinish() {
     seenThisSession = true
@@ -72,6 +92,9 @@ export function InvitationExperience({
     // antes do commit, mira um elemento que ainda está inert — o
     // navegador recusa silenciosamente e o convidado fica sem foco algum.
     setShowOpening(false)
+    // Devolve o botão de música ao mesmo commit em que a abertura sai de
+    // cena — daqui em diante ele volta a se comportar como sempre.
+    setOpeningVisible(false)
   }
 
   useEffect(() => {
@@ -108,9 +131,11 @@ export function InvitationExperience({
         // a abertura é opaca e cobre a tela inteira, mas como z-40 < z-50 o
         // botão de som (fixed, fora desta árvore) ainda vencia o hit-test e
         // ficava visível por cima dela — um toque impreciso no canto ligava a
-        // música em vez de acionar "Pular". Ficando acima, a abertura cobre o
-        // botão de som visual e interativamente enquanto durar; ele volta a
-        // responder normalmente assim que ela desmonta.
+        // música em vez de acionar "Pular". Hoje o botão nem chega a
+        // renderizar enquanto a abertura dura (`isOpeningVisible` na store),
+        // o que resolve foco, hit-test e árvore de acessibilidade de uma vez;
+        // o z-[60] fica como defesa em profundidade para qualquer outro
+        // elemento `fixed` que venha a existir acima desta camada.
         <div className="fixed inset-0 z-[60]">
           <OpeningSequence
             monogram={monogram}
