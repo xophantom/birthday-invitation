@@ -1,6 +1,6 @@
 # SDD ledger — plan: docs/superpowers/plans/2026-08-05-fase-6-acabamento.md
 
-Branch: feat/acabamento (criado a partir de `main` em bba9054)
+Branch: feat/acabamento (criado a partir de `main` em d28590c)
 Baseline: typecheck, lint, 15 testes e build limpos; árvore limpa
 
 ## Calibração de ritmo
@@ -50,11 +50,11 @@ Entrego o projeto pronto para deployar e a lista do que verificar depois.
 
 ## Progresso
 
-Grupo 1 (Tasks 1+2 — erros, 404, OG image, ícones): commits `bba9054..f8269d2`.
-Grupo 2 (Tasks 3+4 — QR Code, acessibilidade): commits `f8269d2..01a5f85`. 7 correções aplicadas.
-Grupo 3 (Task 5 — README, sem deploy): commit `0d84e0a`.
+Grupo 1 (Tasks 1+2 — erros, 404, OG image, ícones): commits `d28590c..08d1043`.
+Grupo 2 (Tasks 3+4 — QR Code, acessibilidade): commits `08d1043..3242a82`. 7 correções aplicadas.
+Grupo 3 (Task 5 — README, sem deploy): commit `79dc3da`.
 
-## Review final (`bba9054..0d84e0a`)
+## Review final (`d28590c..79dc3da`)
 
 Veredito: "com correções". **Um Crítico, quatro Importantes, nove Menores.**
 
@@ -106,7 +106,7 @@ quatro linhas.
 
 ## Leva de correção do review final e re-review
 
-Leva única em `0d84e0a..bb1d6c9` (7 commits), **11/11 itens atendidos**. Re-review em opus: sem
+Leva única em `79dc3da..437c1e8` (7 commits), **11/11 itens atendidos**. Re-review em opus: sem
 quebra nova, e nenhuma das 7 correções de acessibilidade da fase foi desfeita.
 
 **C1 fechado e verificado por execução** — o re-revisor extraiu a lógica do guarda e rodou 20 casos:
@@ -141,5 +141,5 @@ alguém cadastrar um IP de rede local à mão no painel da Vercel; improvável n
 parked — I1, a OG image de 746 KB. ruling: só se verifica colando o link em produção, e a falha é
 recuperável, ao contrário do QR impresso. Primeiro teste pós-deploy.
 
-FASE 6 COMPLETA — 5/5 tarefas, commits `bba9054..bb1d6c9`. Veredito do re-review: **pronto para
+FASE 6 COMPLETA — 5/5 tarefas, commits `d28590c..437c1e8`. Veredito do re-review: **pronto para
 deploy**. O deploy em si é ação do dono do projeto.
