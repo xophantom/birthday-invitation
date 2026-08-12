@@ -109,10 +109,11 @@ export function InvitationExperience({
         <MenuGrid />
       </main>
       {showOpening && (
-        // z-[60] sits above the MusicPlayer's z-50. The player no longer
-        // renders during the opening, so this is defence in depth for any
+        // z-[60] sits above the MusicPlayer's z-50. The player's button is
+        // withheld during the opening, so this is defence in depth for any
         // future `fixed` element that would otherwise win the hit test.
-        <div className="fixed inset-0 z-[60]">
+        // Capped at the frame width so the opening stays inside the column.
+        <div className="fixed inset-0 z-[60] mx-auto max-w-frame bg-surface-deep">
           <OpeningSequence
             monogram={monogram}
             celebrantName={celebrantName}

@@ -33,6 +33,13 @@
 
   --font-display: var(--font-display-family);
   --font-sans: var(--font-sans-family);
+
+  /*
+   * The invitation is mobile-only by design: on a wide screen it renders as a
+   * phone-width column with the vignette around it, never as a desktop layout.
+   * Exposed as a container token so `max-w-frame` is the single definition.
+   */
+  --container-frame: 430px;
 }
 
 @layer base {

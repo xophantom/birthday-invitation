@@ -9,18 +9,20 @@ type PosterHeroProps = {
 
 export function PosterHero({ poster, celebrantName, date }: PosterHeroProps) {
   return (
-    <section className="flex flex-1 items-center justify-center px-0 py-0 sm:px-6 sm:py-10">
-      <div className="relative aspect-[693/895] w-full max-w-none overflow-hidden sm:max-w-md sm:rounded-3xl sm:border sm:border-accent/30 sm:shadow-2xl sm:shadow-black/50">
+    <section className="flex flex-1 items-center justify-center">
+      <div className="relative aspect-[693/895] w-full overflow-hidden">
         <Image
           src={poster}
           alt={`Convite de 15 anos de ${celebrantName}`}
           fill
           priority
-          sizes="(min-width: 640px) 28rem, 100vw"
+          // The column never exceeds `--container-frame`, so one candidate
+          // covers every viewport — no breakpoint branch to keep in sync.
+          sizes="430px"
           className="object-cover"
         />
 
-        {/* Gradiente que garante leitura da data sobre qualquer parte da arte. */}
+        {/* Gradient keeps the date legible over any part of the artwork. */}
         <div
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-surface-deep via-surface-deep/85 to-transparent"

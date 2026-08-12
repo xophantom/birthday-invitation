@@ -10,10 +10,10 @@ type SectionShellProps = {
 
 export function SectionShell({ title, subtitle, children }: SectionShellProps) {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-10">
+    <main className="flex w-full flex-1 flex-col px-5 py-10">
       <header className="flex flex-col items-center gap-4 text-center">
         <Ornament placement="top" />
-        <h1 className="font-display text-4xl text-accent-light sm:text-5xl">{title}</h1>
+        <h1 className="font-display text-4xl text-accent-light">{title}</h1>
         {subtitle && <p className="max-w-prose text-foreground/80">{subtitle}</p>}
       </header>
 
