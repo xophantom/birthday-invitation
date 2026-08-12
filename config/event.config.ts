@@ -50,8 +50,8 @@ export const eventConfig: EventConfig = {
     poster: '/poster.jpeg',
   },
   media: {
-    openingVideo: null,
-    soundtrack: null,
+    openingVideo: '/video.mp4',
+    soundtrack: '/song.mp3',
   },
   photos: {
     maxPerUpload: 10,

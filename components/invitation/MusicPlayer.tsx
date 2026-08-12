@@ -41,23 +41,37 @@ export function MusicPlayer({ src }: { src: string }) {
       ? 'Reativar música'
       : 'Silenciar música'
 
-  // This lives in the group layout, a sibling of the invitation's <main>, so
-  // the `inert` applied there can't reach it — and z-index never affected tab
-  // order. Unmounting rather than going `inert` is safe because `<audio>` uses
-  // `preload="none"` and nothing plays before the first gesture.
-  if (isOpeningVisible) return null
-
   return (
     <>
+      {/*
+        Stays mounted through the opening: the tap gate in `OpeningSequence`
+        calls `start()`, and the soundtrack has to play over the video. Only
+        the button is withheld.
+      */}
       <audio ref={audioRef} src={src} loop preload="none" />
-      <button
-        type="button"
-        onClick={handleClick}
-        aria-label={ariaLabel}
-        className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-surface/80 text-accent-light backdrop-blur-sm transition-colors hover:bg-surface"
-      >
-        {hasStarted && isMuted ? '🔇' : '🎵'}
-      </button>
+
+      {/*
+        This lives in the group layout, a sibling of the invitation's <main>,
+        so the `inert` applied there can't reach it — and z-index never
+        affected tab order. Without withholding it, the button stayed
+        focusable behind the opaque opening.
+
+        The wrapper is `fixed` but capped at the frame width, so on a wide
+        screen the button sits at the column's corner rather than the
+        viewport's, far from the invitation.
+      */}
+      {!isOpeningVisible && (
+        <div className="pointer-events-none fixed inset-0 z-50 mx-auto max-w-frame">
+          <button
+            type="button"
+            onClick={handleClick}
+            aria-label={ariaLabel}
+            className="pointer-events-auto absolute bottom-5 right-5 flex h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-surface/80 text-accent-light backdrop-blur-sm transition-colors hover:bg-surface"
+          >
+            {hasStarted && isMuted ? '🔇' : '🎵'}
+          </button>
+        </div>
+      )}
     </>
   )
 }
