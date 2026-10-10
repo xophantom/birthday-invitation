@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
+import sharp from 'sharp'
 import { getEventConfig } from '@/lib/config'
 import { formatEventDate } from '@/lib/date'
 
 export const size = { width: 1200, height: 630 }
-export const contentType = 'image/png'
+export const contentType = 'image/jpeg'
 
 /**
  * `alt` is a static export evaluated at module load, so the config has to be
@@ -27,7 +28,7 @@ export default async function Image() {
 
   const posterSrc = `data:image/jpeg;base64,${poster.toString('base64')}`
 
-  return new ImageResponse(
+  const card = new ImageResponse(
     (
       <div
         style={{
@@ -87,4 +88,14 @@ export default async function Image() {
       fonts: [{ name: 'Cormorant', data: font, style: 'normal', weight: 700 }],
     }
   )
+
+  // ImageResponse only renders PNG, and a PNG of painted artwork came out
+  // above 800 KB — well past the ~300 KB WhatsApp is reported to accept for a
+  // link preview, the main way this invitation is shared. The route is
+  // prerendered, so this conversion runs once, at build time.
+  const jpeg = await sharp(Buffer.from(await card.arrayBuffer()))
+    .jpeg({ quality: 82, mozjpeg: true })
+    .toBuffer()
+
+  return new Response(new Uint8Array(jpeg), { headers: { 'Content-Type': contentType } })
 }

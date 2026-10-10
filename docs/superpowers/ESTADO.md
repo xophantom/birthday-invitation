@@ -26,7 +26,7 @@ Guarde a senha num gerenciador. Com valor curto, o login mostra "Configuração 
 
 **2. Escanear o QR impresso com um celular em dados móveis** (não no mesmo wifi). Passa se abre `/fotos` no domínio real e o formulário aparece.
 
-**3. Colar o link numa conversa real do WhatsApp.** Passa se o card aparece com a arte à esquerda e nome, data e local à direita. **Este é o teste que pode falhar:** a OG image tem 746 KB, e o limite prático relatado para prévia do WhatsApp fica em torno de 300 KB. Se não aparecer, o caminho é gerar o card uma vez, converter para JPEG (~120 KB a 85%), salvar em `public/og.jpg` e declarar `openGraph.images` no `app/layout.tsx`. Use `?v=2` na URL para furar o cache do WhatsApp.
+**3. Colar o link numa conversa real do WhatsApp.** Passa se o card aparece com a arte à esquerda e nome, data e local à direita. O risco de tamanho foi tratado: o PNG da OG image passava de 800 KB, acima dos ~300 KB relatados como limite prático do WhatsApp, e agora a rota converte para JPEG no build (~75 KB). Se ainda assim o card não aparecer, use `?v=2` na URL para furar o cache do WhatsApp antes de investigar outra causa.
 
 **4. Abrir o seletor de fotos num iPhone real.** Se não abrir, o único caminho de envio da festa está morto.
 
