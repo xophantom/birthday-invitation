@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MenuIcon } from '@/components/invitation/MenuIcon'
 import { menuItems } from '@/components/invitation/menu-items'
 
 export function MenuGrid() {
@@ -26,9 +27,9 @@ export function MenuGrid() {
             >
               <span
                 aria-hidden
-                className="flex h-20 w-20 items-center justify-center rounded-full border border-accent/40 bg-surface/70 bg-[radial-gradient(circle_at_50%_28%,rgba(232,199,102,0.18),transparent_62%)] text-2xl text-accent-light shadow-lg shadow-black/40 transition-colors group-hover:border-accent group-hover:bg-surface"
+                className="flex h-20 w-20 items-center justify-center rounded-full border border-accent/40 bg-surface/70 bg-[radial-gradient(circle_at_50%_28%,rgba(232,199,102,0.18),transparent_62%)] text-accent-light shadow-lg shadow-black/40 transition-colors group-hover:border-accent group-hover:bg-surface"
               >
-                {item.icon}
+                <MenuIcon name={item.icon} />
               </span>
               <span className="font-sans text-[11px] uppercase leading-tight tracking-[0.12em] text-foreground/85 transition-colors group-hover:text-accent-light">
                 {item.label}
