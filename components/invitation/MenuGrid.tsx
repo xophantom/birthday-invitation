@@ -1,7 +1,4 @@
-'use client'
-
 import Link from 'next/link'
-import { motion } from 'motion/react'
 import { menuItems } from '@/components/invitation/menu-items'
 
 export function MenuGrid() {
@@ -15,12 +12,13 @@ export function MenuGrid() {
       */}
       <ul className="flex flex-wrap justify-center gap-y-7">
         {menuItems.map((item, index) => (
-          <motion.li
+          <li
             key={item.href}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08, duration: 0.5 }}
-            className="flex basis-1/3 justify-center px-1"
+            // A CSS animation, not `motion`: it plays from the server HTML, so
+            // the menu shows on first paint instead of sitting at opacity 0
+            // until the JavaScript arrives.
+            style={{ animationDelay: `${index * 80}ms` }}
+            className="flex basis-1/3 justify-center px-1 motion-safe:animate-fade-up"
           >
             <Link
               href={item.href}
@@ -36,7 +34,7 @@ export function MenuGrid() {
                 {item.label}
               </span>
             </Link>
-          </motion.li>
+          </li>
         ))}
       </ul>
     </nav>

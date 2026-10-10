@@ -42,6 +42,17 @@
   --container-frame: 430px;
 }
 
+@theme {
+  --animate-fade-up: fade-up 0.5s ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+}
+
 @layer base {
   body {
     background-color: var(--brand-surface-deep);
