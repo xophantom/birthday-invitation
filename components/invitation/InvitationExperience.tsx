@@ -105,8 +105,9 @@ export function InvitationExperience({
         className="flex flex-1 flex-col"
       >
         <h1 className="sr-only">{`Convite de aniversário de ${celebrantName} — ${age} anos`}</h1>
-        <PosterHero poster={poster} celebrantName={celebrantName} date={date} />
-        <MenuGrid />
+        <PosterHero poster={poster} celebrantName={celebrantName} date={date}>
+          <MenuGrid />
+        </PosterHero>
       </main>
       {showOpening && (
         // z-[60] sits above the MusicPlayer's z-50. The player's button is
