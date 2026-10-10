@@ -83,7 +83,20 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
                     )}
                   </td>
                   <td className="py-3 pr-4 text-foreground/80">{guest.phone ?? '—'}</td>
-                  <td className="py-3 pr-4 text-foreground/80">{guest.companionsCount}</td>
+                  <td className="py-3 pr-4 text-foreground/80">
+                    {guest.companionsCount}
+                    {/* Only the guest form collects names; manual entries and
+                        older RSVPs carry just the count. */}
+                    {guest.companionNames.length > 0 && (
+                      <ul className="mt-1 text-xs text-foreground/60">
+                        {guest.companionNames.map((name, index) => (
+                          <li key={index} className="break-words">
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
                   <td className="max-w-xs py-3 pr-4 break-words text-foreground/80">
                     {guest.message ?? '—'}
                   </td>

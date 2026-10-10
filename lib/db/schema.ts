@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   index,
@@ -20,6 +21,15 @@ export const rsvps = pgTable(
     fullName: text('full_name').notNull(),
     phone: text('phone'),
     companionsCount: integer('companions_count').notNull().default(0),
+    /**
+     * Named by the guest form, one per companion, so `companionsCount` equals
+     * its length there. Empty for manual entries and for RSVPs saved before
+     * the form asked for names — the count stays the source of the totals.
+     */
+    companionNames: text('companion_names')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     message: text('message'),
     source: rsvpSource('source').notNull().default('guest'),
     status: rsvpStatus('status').notNull().default('confirmed'),

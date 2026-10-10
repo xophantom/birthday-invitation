@@ -8,16 +8,26 @@ function emptyToNull(value: string | undefined) {
   return trimmed ? trimmed : null
 }
 
+/**
+ * Either the companions' names (guest form), from which the count follows, or
+ * just the count (admin's manual entry). Never both, so the two can't disagree.
+ */
+type RsvpRecordValues = Pick<RsvpFormValues, 'fullName' | 'phone' | 'message'> &
+  ({ companionNames: string[] } | { companionsCount: number })
+
 export async function createRsvpRecord(
-  values: RsvpFormValues,
+  values: RsvpRecordValues,
   source: 'guest' | 'admin'
 ): Promise<Rsvp> {
+  const companionNames = 'companionNames' in values ? values.companionNames.map((n) => n.trim()) : []
+
   const [created] = await db
     .insert(rsvps)
     .values({
       fullName: values.fullName.trim(),
       phone: emptyToNull(values.phone),
-      companionsCount: values.companionsCount,
+      companionsCount: 'companionNames' in values ? companionNames.length : values.companionsCount,
+      companionNames,
       message: emptyToNull(values.message),
       source,
     })

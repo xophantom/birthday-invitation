@@ -15,7 +15,7 @@ export function useRsvpForm() {
     defaultValues: {
       fullName: '',
       phone: '',
-      companionsCount: 0,
+      companions: [],
       message: '',
     },
   })

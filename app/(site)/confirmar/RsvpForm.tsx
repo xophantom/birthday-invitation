@@ -1,25 +1,12 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { CompanionsField } from './CompanionsField'
+import { describedBy, inputClass } from './field-styles'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
 import { useRsvpForm } from '@/hooks/use-rsvp-form'
-
-const inputClass =
-  'min-h-11 w-full rounded-xl border border-accent/30 bg-surface-deep/60 px-4 text-foreground placeholder:text-foreground/40'
-
-/**
- * `FormField` renders hint and error with ids derived from `htmlFor` but does
- * not own the input, so pointing at them is the caller's job. Both can be
- * visible at once: listing only the error would leave on-screen guidance
- * silent for screen reader users.
- */
-function describedBy(htmlFor: string, hasHint: boolean, hasError: boolean) {
-  const ids = [hasHint && `${htmlFor}-hint`, hasError && `${htmlFor}-error`]
-  const value = ids.filter(Boolean).join(' ')
-  return value || undefined
-}
 
 export function RsvpForm() {
   const { form, onSubmit, submitted, serverError } = useRsvpForm()
@@ -74,25 +61,7 @@ export function RsvpForm() {
         />
       </FormField>
 
-      <FormField
-        label="Número de acompanhantes"
-        htmlFor="companionsCount"
-        optional
-        hint="Quantas pessoas vêm com você, sem contar você."
-        error={errors.companionsCount?.message}
-      >
-        <input
-          id="companionsCount"
-          type="number"
-          min={0}
-          max={20}
-          inputMode="numeric"
-          aria-invalid={!!errors.companionsCount}
-          aria-describedby={describedBy('companionsCount', true, !!errors.companionsCount)}
-          className={inputClass}
-          {...form.register('companionsCount')}
-        />
-      </FormField>
+      <CompanionsField form={form} />
 
       <FormField label="Recado" htmlFor="message" optional error={errors.message?.message}>
         <textarea

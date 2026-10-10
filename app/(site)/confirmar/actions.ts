@@ -24,8 +24,13 @@ export async function createRsvp(values: unknown): Promise<RsvpActionResult> {
     }
   }
 
+  const { companions, ...guest } = parsed.data
+
   try {
-    await createRsvpRecord(parsed.data, 'guest')
+    await createRsvpRecord(
+      { ...guest, companionNames: companions.map((companion) => companion.fullName) },
+      'guest'
+    )
   } catch (error) {
     console.error('Falha ao gravar RSVP:', error)
     return {

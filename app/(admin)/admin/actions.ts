@@ -6,7 +6,7 @@ import { z } from 'zod'
 import type { AdminActionResult } from './action-result'
 import { destroyAdminSession, requireAdmin } from '@/lib/auth/session'
 import { createRsvpRecord, removeRsvp } from '@/lib/db/queries/rsvp'
-import { rsvpFormSchema } from '@/lib/validation/rsvp'
+import { manualRsvpSchema } from '@/lib/validation/rsvp'
 import { UUID_PATTERN } from '@/lib/validation/uuid'
 
 export async function addManualRsvp(
@@ -15,7 +15,7 @@ export async function addManualRsvp(
 ): Promise<AdminActionResult> {
   await requireAdmin()
 
-  const parsed = rsvpFormSchema.safeParse({
+  const parsed = manualRsvpSchema.safeParse({
     fullName: formData.get('fullName'),
     phone: formData.get('phone') ?? '',
     companionsCount: formData.get('companionsCount') ?? 0,
