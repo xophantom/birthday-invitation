@@ -42,6 +42,7 @@ export const eventConfig: EventConfig = {
     pixKey: null,
   },
   dressCode: {
+    style: 'Esporte fino',
     avoid: ['Tons de verde'],
     reason: 'O verde é a cor da debutante e fica reservado a ela na festa.',
   },

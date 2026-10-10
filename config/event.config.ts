@@ -7,7 +7,7 @@ export const eventConfig: EventConfig = {
     age: 15,
   },
   event: {
-    startsAt: '2026-12-11T19:00:00-03:00',
+    startsAt: '2026-12-11T20:30:00-03:00',
     timeZone: 'America/Sao_Paulo',
   },
   venue: {
@@ -25,16 +25,20 @@ export const eventConfig: EventConfig = {
     'Aproveite a festa!',
   ],
   gifts: {
-    clothingSize: null,
+    clothingSize: 'PP ou 14',
     shoeSize: null,
     preferences: [
       'Perfumes de fragrância doce',
       'Maquiagem',
       'Acessórios dourados',
+      'Produtos de skin care',
+      'Creme corporal de fragrância doce',
+      'Produtos para cabelo',
     ],
-    pixKey: null,
+    pixKey: '06254427095',
   },
   dressCode: {
+    style: 'Social esporte',
     avoid: ['Tons de verde'],
     reason: 'O verde é a cor da debutante e fica reservado a ela na festa.',
   },

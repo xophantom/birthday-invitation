@@ -25,6 +25,8 @@ export const eventConfigSchema = z.object({
     pixKey: z.string().nullable(),
   }),
   dressCode: z.object({
+    /** The attire guests are asked for, e.g. "Esporte fino" */
+    style: z.string().min(1),
     avoid: z.array(z.string()).min(1),
     reason: z.string().min(1),
   }),
