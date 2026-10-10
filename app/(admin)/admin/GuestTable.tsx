@@ -81,20 +81,27 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
                         nome repetido
                       </span>
                     )}
+                    {/* Under the guest's own name, so the list reads as who is
+                        coming with whom. */}
+                    {guest.companionNames.length > 0 && (
+                      <ul
+                        aria-label={`Acompanhantes de ${guest.fullName}`}
+                        className="mt-1.5 flex flex-col gap-0.5 text-foreground/70"
+                      >
+                        {guest.companionNames.map((name, index) => (
+                          <li key={index}>+ {name}</li>
+                        ))}
+                      </ul>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-foreground/80">{guest.phone ?? '—'}</td>
                   <td className="py-3 pr-4 text-foreground/80">
                     {guest.companionsCount}
                     {/* Only the guest form collects names; manual entries and
-                        older RSVPs carry just the count. */}
-                    {guest.companionNames.length > 0 && (
-                      <ul className="mt-1 text-xs text-foreground/60">
-                        {guest.companionNames.map((name, index) => (
-                          <li key={index} className="break-words">
-                            {name}
-                          </li>
-                        ))}
-                      </ul>
+                        RSVPs from before it asked for them carry just the
+                        count. Said outright so it doesn't read as a bug. */}
+                    {guest.companionsCount > 0 && guest.companionNames.length === 0 && (
+                      <span className="mt-1 block text-xs text-foreground/50">sem nomes</span>
                     )}
                   </td>
                   <td className="max-w-xs py-3 pr-4 break-words text-foreground/80">
