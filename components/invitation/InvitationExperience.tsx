@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { MenuGrid } from '@/components/invitation/MenuGrid'
 import { OpeningSequence } from '@/components/invitation/OpeningSequence'
+import { OPENING_SEEN_KEY } from '@/components/invitation/opening-seen'
 import { PosterHero } from '@/components/invitation/PosterHero'
 import type { EventDateParts } from '@/lib/date'
 import { useMusicStore } from '@/stores/music-store'
-
-const SEEN_KEY = 'convite:abertura-vista'
 
 // In-memory source of truth: survives client-side navigation even when
 // sessionStorage is blocked (restricted-privacy webviews). Lost on a full
@@ -32,34 +31,41 @@ export function InvitationExperience({
   date,
 }: InvitationExperienceProps) {
   const mainRef = useRef<HTMLElement>(null)
-  const [showOpening, setShowOpening] = useState(false)
+  // Starts true so the server renders the opening; a guest who already saw it
+  // is caught by the inline script before paint, and dismissed below once
+  // hydrated. Client-side navigation back here skips it via the memory flag.
+  const [showOpening, setShowOpening] = useState(() => !seenThisSession)
   // The music button lives in the group layout, a sibling of <main>, so the
   // `inert` below can't reach it. This store flag is how it hears about the
   // opening; `showOpening` still drives what this tree renders.
   const setOpeningVisible = useMusicStore((state) => state.setOpeningVisible)
   // Restricts the focus effect below to a real shown -> hidden transition,
-  // never the first paint (where `showOpening` starts false for returners).
+  // never a returner's hydration, where the server-rendered opening is
+  // dismissed without ever having been seen.
   const openingWasShownRef = useRef(false)
 
   useEffect(() => {
     if (seenThisSession) return
 
-    let shouldShow: boolean
+    let alreadySeen: boolean
     try {
       // Client-only API: reading it in the component body would break
       // hydration. Syncing with an external store is the documented exception.
-      shouldShow = sessionStorage.getItem(SEEN_KEY) !== '1'
+      alreadySeen = sessionStorage.getItem(OPENING_SEEN_KEY) === '1'
     } catch {
       // Storage unavailable: can't confirm "already seen", so show it. The
       // in-memory flag still prevents repeats within this session.
-      shouldShow = true
+      alreadySeen = false
     }
-    if (!shouldShow) return
 
-    // Both in the same commit on purpose, so there is no intermediate frame
-    // where the music button is still focusable behind the opaque overlay.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setShowOpening(true)
+    if (alreadySeen) {
+      seenThisSession = true
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowOpening(false)
+      return
+    }
+
+    openingWasShownRef.current = true
     setOpeningVisible(true)
   }, [setOpeningVisible])
 
@@ -70,7 +76,7 @@ export function InvitationExperience({
   function handleFinish() {
     seenThisSession = true
     try {
-      sessionStorage.setItem(SEEN_KEY, '1')
+      sessionStorage.setItem(OPENING_SEEN_KEY, '1')
     } catch {
       // The in-memory flag is enough; what matters is not stranding the guest
       // on a blank screen.
@@ -83,14 +89,9 @@ export function InvitationExperience({
   }
 
   useEffect(() => {
-    if (showOpening) {
-      openingWasShownRef.current = true
-      return
-    }
-    if (openingWasShownRef.current) {
-      mainRef.current?.focus()
-      openingWasShownRef.current = false
-    }
+    if (showOpening || !openingWasShownRef.current) return
+    mainRef.current?.focus()
+    openingWasShownRef.current = false
   }, [showOpening])
 
   return (
@@ -114,7 +115,9 @@ export function InvitationExperience({
         // withheld during the opening, so this is defence in depth for any
         // future `fixed` element that would otherwise win the hit test.
         // Capped at the frame width so the opening stays inside the column.
-        <div className="fixed inset-0 z-[60] mx-auto max-w-frame bg-surface-deep">
+        // `in-data-opening-seen:hidden` hides it before hydration for a
+        // guest who already saw it (see opening-seen.ts).
+        <div className="fixed inset-0 z-[60] mx-auto max-w-frame bg-surface-deep in-data-opening-seen:hidden">
           <OpeningSequence
             monogram={monogram}
             celebrantName={celebrantName}

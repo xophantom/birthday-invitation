@@ -47,6 +47,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="pt-BR"
+      // The invitation's inline script sets `data-opening-seen` here before
+      // React hydrates (see components/invitation/opening-seen.ts). This only
+      // silences the mismatch on <html>'s own attributes, not its children.
+      suppressHydrationWarning
       className={`${fontDisplay.variable} ${fontSans.variable} h-full antialiased`}
       style={
         {
