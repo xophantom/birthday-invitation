@@ -5,8 +5,8 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import type { AdminActionResult } from './action-result'
 import { destroyAdminSession, requireAdmin } from '@/lib/auth/session'
-import { createRsvpRecord, removeRsvp } from '@/lib/db/queries/rsvp'
-import { manualRsvpSchema } from '@/lib/validation/rsvp'
+import { createRsvpRecord, removeRsvp, updateRsvpRecord } from '@/lib/db/queries/rsvp'
+import { editRsvpSchema, manualRsvpSchema } from '@/lib/validation/rsvp'
 import { UUID_PATTERN } from '@/lib/validation/uuid'
 
 export async function addManualRsvp(
@@ -36,6 +36,45 @@ export async function addManualRsvp(
 
   revalidatePath('/admin')
   return { ok: true, message: 'Confirmação adicionada à lista.' }
+}
+
+export async function updateRsvp(
+  _state: AdminActionResult,
+  formData: FormData
+): Promise<AdminActionResult> {
+  await requireAdmin()
+
+  // Same guard as deleteRsvp: reachable by direct POST with any `id`.
+  const id = String(formData.get('id') ?? '')
+  if (!UUID_PATTERN.test(id)) {
+    return { ok: false, message: 'Convidado inválido.' }
+  }
+
+  const parsed = editRsvpSchema.safeParse({
+    fullName: formData.get('fullName'),
+    phone: formData.get('phone') ?? '',
+    message: formData.get('message') ?? '',
+    // One input per companion, all sharing this name.
+    companionNames: formData.getAll('companionNames'),
+    unnamedCompanions: formData.get('unnamedCompanions') ?? 0,
+  })
+
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? 'Confira os dados informados.' }
+  }
+
+  try {
+    const found = await updateRsvpRecord(id, parsed.data)
+    if (!found) {
+      return { ok: false, message: 'Esta confirmação não está mais na lista.' }
+    }
+  } catch (error) {
+    console.error('Falha ao editar confirmação:', error)
+    return { ok: false, message: 'Não foi possível salvar. Tente novamente.' }
+  }
+
+  revalidatePath('/admin')
+  return { ok: true }
 }
 
 export async function deleteRsvp(

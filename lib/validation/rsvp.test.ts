@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_COMPANIONS, manualRsvpSchema, rsvpFormSchema } from './rsvp'
+import { MAX_COMPANIONS, editRsvpSchema, manualRsvpSchema, rsvpFormSchema } from './rsvp'
 
 describe('rsvpFormSchema', () => {
   it('aceita apenas o nome completo, com os demais campos vazios', () => {
@@ -69,5 +69,39 @@ describe('manualRsvpSchema', () => {
 
     expect(result.success).toBe(true)
     expect(result.data?.companionsCount).toBe(3)
+  })
+})
+
+describe('editRsvpSchema', () => {
+  it('aceita nomes junto de acompanhantes ainda sem nome, vindos do formulário', () => {
+    const result = editRsvpSchema.safeParse({
+      fullName: 'Thaina Silva',
+      companionNames: ['Bruno Lima'],
+      unnamedCompanions: '1',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.unnamedCompanions).toBe(1)
+  })
+
+  it('rejeita acompanhante com nome em branco', () => {
+    const result = editRsvpSchema.safeParse({
+      fullName: 'Thaina Silva',
+      companionNames: ['  '],
+      unnamedCompanions: 0,
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejeita quando nomes e sem nome somados passam do limite', () => {
+    const result = editRsvpSchema.safeParse({
+      fullName: 'Thaina Silva',
+      companionNames: ['Bruno Lima', 'Carla Souza'],
+      unnamedCompanions: MAX_COMPANIONS - 1,
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.path).toEqual(['unnamedCompanions'])
   })
 })

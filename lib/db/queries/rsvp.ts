@@ -1,7 +1,7 @@
 import 'server-only'
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { db, rsvps, type Rsvp } from '@/lib/db'
-import type { RsvpFormValues } from '@/lib/validation/rsvp'
+import type { EditRsvpValues, RsvpFormValues } from '@/lib/validation/rsvp'
 
 function emptyToNull(value: string | undefined) {
   const trimmed = value?.trim()
@@ -34,6 +34,28 @@ export async function createRsvpRecord(
     .returning()
 
   return created
+}
+
+/**
+ * Returns false when no confirmed RSVP has this id — removed in another tab
+ * while the edit was open, say — so the caller can say so instead of
+ * reporting a save that never happened.
+ */
+export async function updateRsvpRecord(id: string, values: EditRsvpValues): Promise<boolean> {
+  const updated = await db
+    .update(rsvps)
+    .set({
+      fullName: values.fullName.trim(),
+      phone: emptyToNull(values.phone),
+      message: emptyToNull(values.message),
+      companionNames: values.companionNames,
+      companionsCount: values.companionNames.length + values.unnamedCompanions,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(rsvps.id, id), eq(rsvps.status, 'confirmed')))
+    .returning({ id: rsvps.id })
+
+  return updated.length > 0
 }
 
 export async function listRsvps(): Promise<Rsvp[]> {

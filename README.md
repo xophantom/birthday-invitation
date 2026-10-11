@@ -115,13 +115,13 @@ precisa entrar de novo. Não existe outro procedimento de emergência.
 
 ## Testes
 
-Três arquivos de teste, 18 casos, deliberadamente — o projeto é de escopo pequeno e prazo
+Três arquivos de teste, 21 casos, deliberadamente — o projeto é de escopo pequeno e prazo
 curto, e a cobertura se concentra em lógica pura, onde uma falha é silenciosa e cara:
 
 - `lib/auth/token.test.ts` — assinatura e verificação do token de sessão
 - `lib/validation/rsvp.test.ts` — validação dos schemas de RSVP nos limites (nome vazio,
   acompanhante adicionado sem nome, teto de acompanhantes; no cadastro manual do admin,
-  contagem negativa e coerção de tipo)
+  contagem negativa e coerção de tipo; na edição, nomes somados aos sem nome no teto)
 - `lib/photos/resize.test.ts` — cálculo de redimensionamento das imagens (proporção
   preservada, tetos de 2048/400px, piso de 1px em proporções extremas)
 

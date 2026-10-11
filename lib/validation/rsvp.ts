@@ -18,6 +18,19 @@ function fullName(requiredMessage: string) {
     .max(120, { error: 'Nome muito longo.' })
 }
 
+const companionName = fullName('Informe o nome completo do acompanhante.')
+
+const companionNames = z
+  .array(companionName)
+  .max(MAX_COMPANIONS, { error: `No máximo ${MAX_COMPANIONS} acompanhantes.` })
+
+const companionCount = z.coerce
+  .number({ error: 'Informe um número.' })
+  .int({ error: 'Informe um número inteiro.' })
+  .min(0, { error: 'Não pode ser negativo.' })
+  .max(MAX_COMPANIONS, { error: `No máximo ${MAX_COMPANIONS} acompanhantes.` })
+  .default(0)
+
 const rsvpBaseSchema = z.object({
   fullName: fullName('Informe seu nome completo.'),
   phone: z
@@ -41,7 +54,7 @@ const rsvpBaseSchema = z.object({
  */
 export const rsvpFormSchema = rsvpBaseSchema.extend({
   companions: z
-    .array(z.object({ fullName: fullName('Informe o nome completo do acompanhante.') }))
+    .array(z.object({ fullName: companionName }))
     .max(MAX_COMPANIONS, { error: `No máximo ${MAX_COMPANIONS} acompanhantes.` }),
 })
 
@@ -50,13 +63,24 @@ export const rsvpFormSchema = rsvpBaseSchema.extend({
  * arrived by phone or WhatsApp, often as "me plus two", without the names.
  */
 export const manualRsvpSchema = rsvpBaseSchema.extend({
-  companionsCount: z.coerce
-    .number({ error: 'Informe um número.' })
-    .int({ error: 'Informe um número inteiro.' })
-    .min(0, { error: 'Não pode ser negativo.' })
-    .max(MAX_COMPANIONS, { error: `No máximo ${MAX_COMPANIONS} acompanhantes.` })
-    .default(0),
+  companionsCount: companionCount,
 })
+
+/**
+ * The admin's edit: named companions plus any still known only by number (a
+ * phone confirmation, an RSVP from before the form asked for names), so names
+ * can replace the count bit by bit. The stored count is the sum of the two.
+ */
+export const editRsvpSchema = rsvpBaseSchema
+  .extend({
+    companionNames,
+    unnamedCompanions: companionCount,
+  })
+  .refine((values) => values.companionNames.length + values.unnamedCompanions <= MAX_COMPANIONS, {
+    error: `No máximo ${MAX_COMPANIONS} acompanhantes no total.`,
+    path: ['unnamedCompanions'],
+  })
 
 export type RsvpFormValues = z.infer<typeof rsvpFormSchema>
 export type ManualRsvpValues = z.infer<typeof manualRsvpSchema>
+export type EditRsvpValues = z.infer<typeof editRsvpSchema>

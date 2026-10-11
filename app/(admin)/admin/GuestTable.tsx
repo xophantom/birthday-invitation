@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState } from 'react'
 import type { AdminActionResult } from './action-result'
 import { deleteRsvp } from './actions'
+import { EditGuestForm } from './EditGuestForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import type { Rsvp } from '@/lib/db'
@@ -15,6 +16,7 @@ const initialState: DeleteState = { ok: true }
 
 export function GuestTable({ guests }: { guests: Rsvp[] }) {
   const [confirming, setConfirming] = useState<Rsvp | null>(null)
+  const [editing, setEditing] = useState<Rsvp | null>(null)
 
   const [state, action, pending] = useActionState(
     async (previous: DeleteState, formData: FormData): Promise<DeleteState> => {
@@ -113,16 +115,27 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
                     </span>
                   </td>
                   <td className="py-3">
-                    {/* Opens the confirmation; does not remove. The name is in
-                        the `aria-label` because every row has a "Remover". */}
-                    <button
-                      type="button"
-                      onClick={() => setConfirming(guest)}
-                      aria-label={`Remover ${guest.fullName}`}
-                      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm text-danger underline underline-offset-4 hover:bg-danger/10 hover:no-underline"
-                    >
-                      Remover
-                    </button>
+                    {/* The names are in the `aria-label`s because every row
+                        has the same two buttons. "Remover" opens the
+                        confirmation; it does not remove. */}
+                    <div className="flex">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(guest)}
+                        aria-label={`Editar ${guest.fullName}`}
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm text-accent-light underline underline-offset-4 hover:bg-accent/10 hover:no-underline"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(guest)}
+                        aria-label={`Remover ${guest.fullName}`}
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm text-danger underline underline-offset-4 hover:bg-danger/10 hover:no-underline"
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -136,6 +149,14 @@ export function GuestTable({ guests }: { guests: Rsvp[] }) {
           {state.message}
         </p>
       )}
+
+      <Modal open={editing !== null} onClose={() => setEditing(null)} title="Editar confirmação">
+        {/* Keyed so opening another guest starts from that guest's data
+            rather than whatever was typed for the previous one. */}
+        {editing && (
+          <EditGuestForm key={editing.id} guest={editing} onClose={() => setEditing(null)} />
+        )}
+      </Modal>
 
       <Modal
         open={confirming !== null}
